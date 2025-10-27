@@ -1,23 +1,21 @@
-import logo from './logo.svg';
 import './App.css';
+import { useScroll } from './hooks/useScroll';
+import GreetingPage from './pages/GreetingPage';
+import HereDoggyPage from './pages/HereDoggyPage';
+import WhereGoPage from './pages/WhereGoPage';
+
 
 function App() {
+  useScroll(); // 스크롤 이벤트 리스너 등록을 위해 호출
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {/* 메인 콘텐츠 영역 */}
+      <main className="main-content">
+        <GreetingPage />
+        <HereDoggyPage />
+        <WhereGoPage />
+      </main>
     </div>
   );
 }
