@@ -13,16 +13,28 @@ const HereDoggyPage = () => {
     techStack: ["Flutter", "Dart", "React", "JavaScript", "Spring Boot", "PostgreSQL", "Redis"],
     githubLink: "https://github.com/tytgame/HereDoggy",
     // 상세 정보 추가
+    planning: {
+      title: "기획 의도",
+      description: "보호소의 유기동물과 시민을 연결하여, 산책과 체험을 입양으로 연결시켜 유기동물의 복지와 입양률 향상을 목표로 한 프로젝트입니다.",
+      points: [
+        "산책/체험을 통한 유기동물과의 자연스러운 접촉 기회 제공",
+        "MBTI 및 설문 기반 맞춤 입양 추천 시스템으로 입양 증진",
+        "실시간 산책 경로 기록 및 공유를 통한 일상 기록",
+        "커뮤니티 기능을 통한 입양 후기 및 정보 공유로 신뢰도 향상",
+        "AI 기술 활용으로 맞춤 상담 서비스 제공"
+      ]
+    },
+    
     features: [
       {
         icon: "🚶‍♀️",
         title: "산책/체험 예약",
-        description: "유기동물과의 산책 체험 예약 및 실시간 경로 기록"
+        description: "유기동물과의 체험 예약 및 실시간 경로 기록"
       },
       {
         icon: "🏠",
         title: "입양 신청",
-        description: "MBTI/설문 기반 맞춤 입양 추천 및 신청 시스템"
+        description: "MBTI/설문 기반 맞춤 유기동물 추천 시스템"
       },
       {
         icon: "📍",
@@ -32,12 +44,12 @@ const HereDoggyPage = () => {
       {
         icon: "💬",
         title: "커뮤니티",
-        description: "자유 게시판, 산책 후기 게시판, 실종/목격 게시판"
+        description: "자유/후기/제보 게시판"
       },
       {
         icon: "🤖",
         title: "AI 기능",
-        description: "자동 품종 등록, AI 맞춤 추천, Gemini 챗봇"
+        description: "Gemini 챗봇"
       },
       {
         icon: "🔔",
@@ -72,7 +84,7 @@ const HereDoggyPage = () => {
         caption: "산책 일정 예약부터 기록 관리까지의 전체 플로우"
       },
       {
-        title: "입양 플로우",
+        title: "입양 신청서 작성",
         images: [
           { image: "/HereDoggyAdoptionSurvey.jpg", caption: "MBTI 기반 입양 설문" },
           { image: "/HereDoggyAdoption.jpg", caption: "맞춤 강아지 추천" }
@@ -80,7 +92,7 @@ const HereDoggyPage = () => {
         caption: "설문 기반 맞춤 추천부터 입양까지의 과정"
       },
       {
-        title: "커뮤니티",
+        title: "카테고리별 커뮤니티",
         images: [
           { image: "/HereDoggyCommunity.jpg", caption: "커뮤니티 게시판" },
           { image: "/HereDoggyCommunityDetail.jpg", caption: "게시글 상세 및 댓글" }
@@ -88,7 +100,7 @@ const HereDoggyPage = () => {
         caption: "산책 후기, 일상 공유, 실종/목격 게시판 등 커뮤니티 기능"
       },
       {
-        title: "스토어 & AI",
+        title: "스토어 & 챗봇",
         images: [
           { image: "/HereDoggyStore.jpg", caption: "굿즈 스토어" },
           { image: "/HereDoggyGeminiChatbot.jpg", caption: "AI 챗봇 상담" }
@@ -107,7 +119,7 @@ const HereDoggyPage = () => {
     
     troubleshooting: [
       {
-        title: "산책 진행중 데이터 과다 저장 문제",
+        title: "산책 진행중 좌표 과다 저장 문제",
         background: {
           image: "/HereDoggyUserFlow.png",
           text: "여기보개의 산책 서비스는 산책 날짜를 예약하고, 해당 일자에 산책을 진행하면 실시간으로 이동 경로가 그려지며 좌표 데이터들이 서버에 저장됩니다."
@@ -195,8 +207,8 @@ double _calculateDistance(LatLng a, LatLng b) {
           },
         ],
         experience: `한 번의 산책 시 저장되는 데이터를 87% 이상 감소시키면서 경로 정확도를 10m 이내로 유지했습니다 (30분 산책, 2.3km 이동 기준. 1,800개 → 약 230개 좌표, 157KB → 16KB). 배터리 소모가 체감될 정도로 감소했고, 초기 구현 방식보다 개선된 방식에서 시각적으로 보여지는 경로가 훨씬 자연스럽게 그려졌습니다.`,
-        learnings: `이번 최적화 과정을 통해 '동작하는 코드'와 '좋은 코드'의 차이를 고민하는 계기가 되었습니다. 초기 구현 방식에서도 기능은 동작했지만, 되돌아보면 결코 좋은 코드는 아니었습니다. 현재 개선된 방식도 마찬가지로 더 좋은 방식이 있을 것이라 생각되고, 끊임없이 생각하며 배우고 더 나은 방식을 찾아서 '좋은 코드'를 고민해야 한다는 것을 깨달았습니다.
-또한, 문제를 숫자로 정량화하는 사고과정과 대안을 여러가지로 탐색하고, 규모가 커질 경우 예상되는 문제점을 미리 생각하는 법을 배웠습니다. '데이터가 많다'는 모호한 문제를 "30분에 1,800개, 월간 이용자 1만 명 기준 7.66GB"라는 정량적 수치로 구체화하면서 문제를 명확히 인지했습니다. 이는 해결책의 목표도 단순 개선이 아닌 수치로 설정하는 기준이 되었습니다.
+        learnings: `이번 최적화 과정을 통해 '동작하는 코드'와 '좋은 코드'의 차이를 고민하는 계기가 되었습니다. 초기 구현 방식에서도 기능은 동작했지만, 되돌아보면 결코 최적화된 코드는 아니었습니다. 그리고 초기방식에서 개선한 것처럼 Douglas-Peucker 알고리즘을 사용하여 한번 더 최적화 할 수 있겠다라는 생각이 들어 계속해서 더 나은 방식을 생각하며 배워가야 한다는 것을 깨달았습니다.
+또한, 문제를 숫자로 정량화하는 사고과정과, 대안을 여러가지로 탐색하고 규모가 커질 경우 예상되는 문제점을 미리 생각하는 법을 배웠습니다. '데이터가 많다'는 모호한 문제를 "30분에 1,800개, 월간 이용자 1만 명 기준 7.66GB"라는 정량적 수치로 구체화하면서 문제를 명확히 인지했습니다. 이는 해결책의 목표도 단순 개선이 아닌 수치로 설정하는 기준이 되었습니다.
 마지막으로 근본 원리를 이해하는 것이 중요하다는 것을 배웠습니다. 단순히 앱 로직으로 해결하려던 초기 접근과 달리, Geolocator의 distanceFilter라는 기기 자체 기능을 활용하는 것이 배터리와 성능에 유리할 수 있음을 깨달았습니다. 기술을 선택할 때 그 기술이 내부적으로 어떻게 동작하는지 이해하는 과정의 중요성을 배우게 되었습니다.`
       },
     ]

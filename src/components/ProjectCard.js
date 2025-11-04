@@ -1,9 +1,12 @@
 import React from 'react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 // Helper function to wrap technical terms with tooltip
 const renderTextWithTooltips = (text) => {
   const tooltips = {
-    'Haversine 공식': '지구의 곡률을 고려하여 위도와 경도로부터 정확한 거리를 계산하는 공식'
+    'Haversine 공식': '지구의 곡률을 고려하여 위도와 경도로부터 정확한 거리를 계산하는 공식',
+    'Douglas-Peucker 알고리즘': '경로의 점들을 단순화하여 데이터 양을 줄이면서도 경로의 형태를 유지하는 알고리즘'
   };
   
   let result = [text];
@@ -100,12 +103,31 @@ const ProjectCard = ({
                 </a>
               </div>
             </div>
-            <div className="project-features-inline">
+            <div className="project-planning-features-wrapper">
+              <div className="project-planning-inline">
+                {planning && (
+                  <div className="planning-content">
+                    {planning.title && (
+                      <h3 className="planning-title">{planning.title}</h3>
+                    )}
+                    {planning.description && (
+                      <p className="planning-description">{planning.description}</p>
+                    )}
+                    {planning.points && planning.points.length > 0 && (
+                      <ul className="planning-points">
+                        {planning.points.map((point, index) => (
+                          <li key={index}>{point}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
               {features && (
-                <div className="features-inline-grid">
+                <div className="features-grid-below-planning">
                   {features.map((feature, index) => (
-                    <div key={index} className="feature-inline-card">
-                      <div className="feature-inline-icon">
+                    <div key={index} className="feature-card-below">
+                      <div className="feature-icon-below">
                         <span>{feature.icon}</span>
                       </div>
                       <h4>{feature.title}</h4>
@@ -246,9 +268,17 @@ const ProjectCard = ({
                               <h6>{step.title}</h6>
                               <p>{step.description}</p>
                               {step.code && (
-                                <pre className="code-block">
-                                  <code className="language-dart">{step.code}</code>
-                                </pre>
+                                <SyntaxHighlighter
+                                  language="dart"
+                                  style={vscDarkPlus}
+                                  customStyle={{
+                                    borderRadius: '8px',
+                                    padding: '16px',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  {step.code}
+                                </SyntaxHighlighter>
                               )}
                             </div>
                           </div>
@@ -256,9 +286,17 @@ const ProjectCard = ({
                       </div>
                     )}
                     {issue.code && (
-                      <pre className="code-block">
-                        <code className="language-dart">{issue.code}</code>
-                      </pre>
+                      <SyntaxHighlighter
+                        language="dart"
+                        style={vscDarkPlus}
+                        customStyle={{
+                          borderRadius: '8px',
+                          padding: '16px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {issue.code}
+                      </SyntaxHighlighter>
                     )}
                   </div>
 
@@ -270,7 +308,7 @@ const ProjectCard = ({
                   {issue.learnings && (
                     <div className="issue-learnings">
                       <h5>배운 점</h5>
-                      <p>{issue.learnings}</p>
+                      <p>{renderTextWithTooltips(issue.learnings)}</p>
                     </div>
                   )}
                 </div>
