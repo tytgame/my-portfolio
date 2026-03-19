@@ -8,6 +8,7 @@ function BlockmindPage() {
           <span className="text-sm font-mono text-gray-500 mt-2 md:mt-0">2026.01 - 2026.03</span>
         </div>
         <p className="text-lg text-gray-700 mb-6 font-light leading-relaxed">
+        사용자의 대화를 바탕으로 정보를 블록으로 추출하고, <br/>
         AI 대화에서 어떤 컨텍스트가 답변에 반영되는지 시각화하고 제어할 수 있는 서비스
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-mono text-gray-600">
@@ -36,26 +37,40 @@ function BlockmindPage() {
       {/* 문제 상황 */}
       <section className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          문제 상황 정의: AI 응답 스트리밍 처리 중 UI 불일치
+          문제 상황 : 블록 비활성화가 AI 응답에 반영되지 않는 문제
         </h3>
         <div className="prose max-w-none text-gray-600">
           <p>
-            OpenAI API의 스트리밍 응답을 React 상태에 실시간으로 반영하는 과정에서
-            <strong> 청크 단위 파싱 오류</strong>와 <strong>컴포넌트 불필요 리렌더링</strong>이라는 두 가지 문제가 발생했습니다.
+          블록 비활성화를 누르면 해당 정보가 다음 응답부터 즉시 제외될 것으로 기대했습니다. <br/>
+          하지만 실제로는 블록을 비활성화해도 AI가 블록에 있는 이름, 나이, 직업 등을 그대로 기억하고 답변했습니다. 
           </p>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>
-              <strong className="text-gray-900">청크 파싱 오류:</strong>{' '}
-              SSE(Server-Sent Events) 스트림에서 수신되는 데이터가 네트워크 상태에 따라
-              여러 청크로 분리되거나 합쳐져 수신되었습니다. 단순 문자열 분할 방식으로는
-              JSON 파싱 오류가 간헐적으로 발생했고, 응답 텍스트가 도중에 잘리는 현상이 나타났습니다.
-            </li>
-            <li>
-              <strong className="text-gray-900">과도한 리렌더링:</strong>
-              스트리밍 중 매 청크마다 상태를 갱신하면서 블록 목록 전체가 리렌더링되어
-              타이핑 효과가 끊기고 입력 커서가 초기화되는 UX 문제가 발생했습니다.
-            </li>
-          </ul>
+          <br/>
+          <div>
+            <p className="font-bold text-gray-900 mb-2">예시</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>블록 내용: "홍길동, 강남, 30세, 백엔드 엔지니어"</li>
+              <li>블록 비활성화 후 질문: "내 이름이 뭐야?"</li>
+              <li>기대: "알 수 없습니다"</li>
+              <li>실제: "홍길동님입니다"</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* 원인 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          원인
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+        <img
+          src=""
+          alt="블록 토글 시 요청 흐름"
+          className="w-full rounded"
+        />
+        <div className="prose max-w-none text-gray-600">
+          <p>원인 설명</p>
         </div>
       </section>
 
@@ -102,39 +117,90 @@ reader.on('chunk', (chunk) => {
         </div>
       </section>
 
-      {/* 최종 성과 */}
-      <section className="bg-surface-light p-6 rounded-lg border border-border-light">
-        <h3 className="text-lg font-bold mb-4 flex items-center">
-          <span className="material-icons text-primary mr-2">check_circle</span>
-          최종 성과
+      {/* 결과 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          결과
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-          <div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">Zero</div>
-            <div className="text-xs text-gray-500 uppercase tracking-wider">파싱 오류</div>
-            <p className="text-xs text-gray-400 mt-2">간헐적 JSON 오류 완전 제거</p>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">70%</div>
-            <div className="text-xs text-gray-500 uppercase tracking-wider">체감 응답속도 향상</div>
-            <p className="text-xs text-gray-400 mt-2">끊김 없는 타이핑 효과 구현</p>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">90%↓</div>
-            <div className="text-xs text-gray-500 uppercase tracking-wider">불필요 리렌더링</div>
-            <p className="text-xs text-gray-400 mt-2">블록 단위 메모이제이션 적용</p>
-          </div>
+        <div className="prose max-w-none text-gray-600">
+          <p>결과 내용</p>
         </div>
       </section>
 
-      {/* 회고 */}
-      <section>
-        <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-3">Retrospective</h3>
-        <p className="text-gray-600 text-sm leading-relaxed">
-          스트리밍 API를 처음 다루며 네트워크 레이어의 불확실성을 UI 레이어에서 어떻게 흡수해야 하는지 배웠습니다.
-          특히 외부 API의 응답 형식을 그대로 신뢰하지 않고, 항상 방어적으로 파싱하는 습관의 중요성을 체감했습니다.
-          추후에는 스트리밍 상태를 전역 스토어와 연동하여 네트워크 단절 시 재연결 및 이어받기 기능을 구현하고 싶습니다.
-        </p>
+      {/* ───────────── 2번째 문제 ───────────── */}
+
+      {/* 문제 상황 2 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          문제 상황 :
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+      </section>
+
+      {/* 원인 2 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          원인
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+      </section>
+
+      {/* 해결 과정 2 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          해결 과정
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+      </section>
+
+      {/* 결과 2 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          결과
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+      </section>
+
+      {/* ───────────── 3번째 문제 ───────────── */}
+
+      {/* 문제 상황 3 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          문제 상황 :
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+      </section>
+
+      {/* 원인 3 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          원인
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+      </section>
+
+      {/* 해결 과정 3 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          해결 과정
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+      </section>
+
+      {/* 결과 3 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          결과
+        </h3>
+        <div className="prose max-w-none text-gray-600">
+        </div>
       </section>
     </article>
   );
