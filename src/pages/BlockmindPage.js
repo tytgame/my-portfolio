@@ -2,23 +2,35 @@ function BlockmindPage() {
   return (
     <article className="space-y-12">
       {/* 프로젝트 헤더 */}
-      <section className="border-l-2 border-primary pl-6">
+      <section>
         <div className="flex flex-col md:flex-row md:items-baseline justify-between mb-4">
           <h2 className="text-3xl font-bold tracking-tight">BlockMind</h2>
           <span className="text-sm font-mono text-gray-500 mt-2 md:mt-0">2026.01 - 2026.03</span>
         </div>
         <p className="text-lg text-gray-700 mb-6 font-light leading-relaxed">
-          AI 기반 블록 단위 지식 관리 서비스. <br className="hidden md:block" />
-          메모와 아이디어를 블록으로 분리·연결하여 개인 지식 그래프를 형성하고,
-          프로젝트별 맥락을 체계적으로 관리합니다.
+        AI 대화에서 어떤 컨텍스트가 답변에 반영되는지 시각화하고 제어할 수 있는 서비스
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-mono text-gray-600">
-          <span>React</span>
+          <span>Next.js</span>
           <span>TypeScript</span>
-          <span>Node.js</span>
-          <span>PostgreSQL</span>
-          <span>OpenAI API</span>
+          <span>Zustand</span>
+          <span>Tailwind CSS</span>
+          <span>Supabase</span>
+          <span>Jest</span>
+          <span>Playwright</span>
         </div>
+      </section>
+
+      {/* 아키텍처 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          아키텍처
+        </h3>
+        <img
+          src="/blockmindArc.png"
+          alt="BlockMind 아키텍처"
+          className="w-full rounded"
+        />
       </section>
 
       {/* 문제 상황 */}
