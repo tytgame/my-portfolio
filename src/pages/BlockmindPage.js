@@ -8,7 +8,7 @@ function BlockmindPage() {
           <span className="text-sm font-mono text-gray-500 mt-2 md:mt-0">2026.01 - 2026.03</span>
         </div>
         <p className="text-lg text-gray-700 mb-6 font-light leading-relaxed">
-        사용자의 대화를 바탕으로 정보를 블록으로 추출하고, <br/>
+        사용자의 대화를 바탕으로 정보를 블록으로 생성하고, <br/>
         AI 대화에서 어떤 컨텍스트가 답변에 반영되는지 시각화하고 제어할 수 있는 서비스
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-mono text-gray-600">
@@ -65,55 +65,47 @@ function BlockmindPage() {
         <div className="prose max-w-none text-gray-600">
         </div>
         <img
-          src=""
+          src="/BlockmindReason1.png"
           alt="블록 토글 시 요청 흐름"
-          className="w-full rounded"
+          className="w-full max-w-2xl mx-auto rounded"
         />
         <div className="prose max-w-none text-gray-600">
-          <p>원인 설명</p>
+          <p>처음에는 세션에서 LLM이 정보를 기억하는 내부의 고유한 특성 문제라고 생각했지만,
+          개발자 도구 Network의 채팅 payload를 뜯어본 결과 systemPrompt는 제거됐지만 해당 정보를 담고있는 message 배열은 그대로 전송하고 있다는게 원인으로 밝혀졌습니다.<br/>
+          문제의 본질은 LLM 기억이 아니라 UI 상태와 inference payload가 서로 다른 소스 오브 트루스를 가지고 있었던 것이었습니다.
+          </p>
         </div>
       </section>
 
       {/* 해결 과정 */}
       <section className="space-y-6">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">해결 과정</h3>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-4">
-            <h4 className="font-bold text-gray-900 mb-2">1. 버퍼 기반 스트림 파서 구현</h4>
-            <p className="text-sm text-gray-600">
-              수신된 청크를 즉시 파싱하지 않고 내부 버퍼에 누적한 뒤,
-              완전한 SSE 라인(<code className="text-xs bg-gray-100 px-1 py-0.5 rounded">data: ...</code>) 단위로만 파싱하도록 로직을 변경했습니다.
-            </p>
-          </div>
-          <div className="md:col-span-8 bg-surface-light p-4 rounded border border-border-light font-mono text-xs overflow-x-auto custom-scrollbar">
-            <pre className="text-gray-800">{`// 버퍼 기반 SSE 파서 (Pseudo-code)
-let buffer = '';
-reader.on('chunk', (chunk) => {
-  buffer += chunk;
-  const lines = buffer.split('\\n');
-  buffer = lines.pop(); // 미완성 라인은 버퍼에 유지
-  for (const line of lines) {
-    if (line.startsWith('data: ')) {
-      const json = JSON.parse(line.slice(6));
-      appendToken(json.choices[0].delta.content);
-    }
-  }
-});`}</pre>
-          </div>
 
-          <div className="md:col-span-4">
-            <h4 className="font-bold text-gray-900 mb-2">2. 렌더링 최적화</h4>
-            <p className="text-sm text-gray-600">
-              스트리밍 중인 블록만 격리된 상태로 관리하고,
-              <code className="text-xs bg-gray-100 px-1 py-0.5 rounded mx-1">React.memo</code>로
-              완성된 블록의 리렌더링을 차단했습니다.
-              스트리밍 완료 시에만 전역 상태에 커밋하는 방식으로 불필요한 업데이트를 제거했습니다.
-            </p>
-          </div>
-          <div className="md:col-span-8 border border-dashed border-border-light p-4 rounded flex items-center justify-center text-sm text-gray-400">
-            <span className="material-icons mr-2">schema</span>
-            스트리밍 블록 격리 → 완료 후 전역 커밋
-          </div>
+        {/* 대안 검토 */}
+        <div className="prose max-w-none text-gray-600">
+          <p>이 문제를 해결하기 위해 세 가지 대안을 검토했습니다. 블록 활성화 상태에 따라 대화가 사라지는 등 사용자 경험을 방해하지 않고 맥락을 제어하는 방안이 필요했습니다.</p>
+        </div>
+        <ul className="text-gray-600 space-y-1">
+          <li>A. 시스템 프롬프트에 직접 "Forget" 지시</li>
+          <li>B. messages[]에서 해당 블록 관련 메시지 제거</li>
+          <li className="font-bold text-gray-900">C. pivotIndex로 메시지 경계를 분리하여 슬라이싱 (채택)</li>
+        </ul>
+
+        {/* A,B,C 기각 이유 */}
+        <div className="prose max-w-none text-gray-600 space-y-2">
+          <p>
+            A안은 LLM이 지시를 무시할 수 있어 기억 차단이 불확실하고 토큰이 낭비될 것으로 예상되었습니다.<br/>
+            B안은 채팅 내역이 화면에서 완전히 사라져 UX를 크게 저하하고 대화 흐름이 깨지는 문제가 있었습니다.
+          </p>
+          <p>
+            C안은 UI 변경 없이 LLM에게 전달되는 맥락만 제어하는 방식으로,
+            과거 대화가 LLM에게 전달되지 않아 기억 차단이 확실한 방안으로 채택하었습니다.
+            이 방식은 사용자의 조작이 곧바로 모델 입력 경계에 반영되도록 상태 구조를 재설계해야 했습니다.
+          </p>
+        </div>
+
+        {/* 구현 과정 */}
+        <div className="prose max-w-none text-gray-600">
         </div>
       </section>
 
