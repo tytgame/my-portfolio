@@ -111,11 +111,11 @@ function BlockmindPage() {
       {/* 2번째 문제 */}
       <section className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          문제 상황 : 채팅 페이지 진입 시 빈 화면이 순간 노출되는 문제
+          문제 상황 : 페이지 리로드 시 빈 화면이 순간 노출되는 문제
         </h3>
         <div className="prose max-w-none text-gray-600">
           <p>
-          채팅 페이지 진입 시 채팅 목록, 채팅 화면, 블록 패널이 모두 빈 상태로 먼저 렌더링된 뒤 데이터가 뒤늦게 표시되었습니다.
+          기존 세션이 있는 상태에서 페이지를 리로드하면 채팅 목록, 채팅 화면, 블록 패널이 모두 빈 상태로 먼저 렌더링된 뒤 데이터가 뒤늦게 표시되었습니다.
           </p>
         </div>
 
@@ -137,7 +137,29 @@ function BlockmindPage() {
 
         {/* 결과 */}
         <h4 className="text-xl font-bold text-gray-900">결과</h4>
-        <div className="prose max-w-none text-gray-600">
+        <div className="grid grid-cols-1 gap-6">
+          <div>
+            <p className="font-bold text-gray-900 mb-2 text-center">수정 전</p>
+            <video
+              src="/BlockmindBeforeShort.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full rounded border border-border-light"
+            />
+          </div>
+          <div>
+            <p className="font-bold text-gray-900 mb-2 text-center">수정 후</p>
+            <video
+              src="/BlockmindAfterShort.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full rounded border border-border-light"
+            />
+          </div>
         </div>
       </section>
 
