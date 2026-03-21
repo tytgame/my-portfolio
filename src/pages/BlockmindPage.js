@@ -28,7 +28,7 @@ function BlockmindPage() {
           아키텍처
         </h3>
         <img
-          src="/blockmindArc2.png"
+          src="/BlockmindArc2.png"
           alt="BlockMind 아키텍처"
           className="w-full rounded"
         />
