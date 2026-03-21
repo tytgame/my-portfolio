@@ -29,7 +29,6 @@ function App() {
 
       <footer className="w-full max-w-4xl mx-auto px-6 py-12 border-t border-border-light text-center text-xs text-gray-400">
         <p>© 2026 Yuyeseong. All rights reserved.</p>
-        <p className="mt-2 font-mono">Designed with minimalist principles.</p>
       </footer>
     </div>
   );

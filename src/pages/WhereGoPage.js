@@ -20,46 +20,16 @@ function WhereGoPage() {
         </div>
       </section>
 
-      {/* 시스템 아키텍처 */}
-      <section className="py-6 overflow-x-auto">
-        <h3 className="text-xs font-mono text-gray-400 mb-4 uppercase">System Architecture</h3>
-        <div className="min-w-[600px] border border-border-light rounded-lg p-8 flex justify-between items-center bg-white relative">
-          <div className="text-center z-10">
-            <div className="w-16 h-16 border-2 border-gray-800 rounded-full flex items-center justify-center mx-auto bg-white">
-              <span className="material-icons text-3xl">laptop</span>
-            </div>
-            <div className="mt-2 font-mono text-xs font-bold">Client</div>
-            <div className="text-[10px] text-gray-500">React</div>
-          </div>
-          <div className="flex-1 h-px bg-gray-300 relative mx-4">
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] bg-white px-2 text-gray-500">
-              REST API
-            </div>
-          </div>
-          <div className="border border-dashed border-gray-400 p-6 rounded-lg relative bg-surface-light">
-            <div className="absolute -top-3 left-4 bg-white px-2 text-xs font-bold font-mono">AWS EC2</div>
-            <div className="flex gap-8 items-center">
-              <div className="text-center">
-                <div className="w-14 h-14 border border-gray-400 rounded flex items-center justify-center mx-auto bg-white shadow-sm">
-                  <span className="font-bold text-xs">Spring<br />Boot</span>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="w-14 h-14 border border-gray-400 rounded-full flex items-center justify-center mx-auto bg-white shadow-sm">
-                  <span className="font-bold text-xs">JPA</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 h-px bg-gray-300 relative mx-4"></div>
-          <div className="text-center z-10">
-            <div className="w-14 h-16 border-2 border-gray-800 rounded-t-lg rounded-b-lg flex flex-col items-center justify-center mx-auto bg-white relative">
-              <div className="w-full h-3 border-b border-gray-800 absolute top-2"></div>
-              <span className="font-bold text-xs mt-2">MySQL</span>
-            </div>
-            <div className="mt-2 font-mono text-xs font-bold">Database</div>
-          </div>
-        </div>
+      {/* 아키텍처 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          아키텍처
+        </h3>
+        <img
+          src=""
+          alt="어디고 아키텍처"
+          className="w-full rounded"
+        />
       </section>
 
       {/* 문제 상황 */}

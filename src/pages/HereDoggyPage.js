@@ -32,6 +32,18 @@ function HereDoggyPage() {
         ))}
       </section>
 
+      {/* 아키텍처 */}
+      <section className="space-y-4">
+        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+          아키텍처
+        </h3>
+        <img
+          src=""
+          alt="여기보개 아키텍처"
+          className="w-full rounded"
+        />
+      </section>
+
       {/* 문제 상황 */}
       <section className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">

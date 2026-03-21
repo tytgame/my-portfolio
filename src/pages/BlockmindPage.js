@@ -28,21 +28,22 @@ function BlockmindPage() {
           아키텍처
         </h3>
         <img
-          src="/blockmindArc.png"
+          src="/blockmindArc2.png"
           alt="BlockMind 아키텍처"
           className="w-full rounded"
         />
       </section>
 
-      {/* 문제 상황 */}
+      {/* 1번째 문제 */}
       <section className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">
           문제 상황 : 블록 비활성화가 AI 응답에 반영되지 않는 문제
         </h3>
+
         <div className="prose max-w-none text-gray-600">
           <p>
           블록 비활성화를 누르면 해당 정보가 다음 응답부터 즉시 제외될 것으로 기대했습니다. <br/>
-          하지만 실제로는 블록을 비활성화해도 AI가 블록에 있는 이름, 나이, 직업 등을 그대로 기억하고 답변했습니다. 
+          하지만 실제로는 블록을 비활성화해도 AI가 블록에 있는 이름, 나이, 직업 등을 그대로 기억하고 답변했습니다.
           </p>
           <br/>
           <div>
@@ -55,15 +56,11 @@ function BlockmindPage() {
             </ul>
           </div>
         </div>
-      </section>
 
-      {/* 원인 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          원인
-        </h3>
-        <div className="prose max-w-none text-gray-600">
-        </div>
+        <br/>
+
+        {/* 원인 */}
+        <h4 className="text-xl font-bold text-gray-900">원인</h4>
         <img
           src="/BlockmindReason1.png"
           alt="블록 토글 시 요청 흐름"
@@ -75,13 +72,11 @@ function BlockmindPage() {
           문제의 본질은 LLM 기억이 아니라 UI 상태와 inference payload가 서로 다른 소스 오브 트루스를 가지고 있었던 것이었습니다.
           </p>
         </div>
-      </section>
 
-      {/* 해결 과정 */}
-      <section className="space-y-6">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">해결 과정</h3>
+        <br/>
 
-        {/* 대안 검토 */}
+        {/* 해결 과정 */}
+        <h4 className="text-xl font-bold text-gray-900">해결 과정</h4>
         <div className="prose max-w-none text-gray-600">
           <p>이 문제를 해결하기 위해 세 가지 대안을 검토했습니다. 블록 활성화 상태에 따라 대화가 사라지는 등 사용자 경험을 방해하지 않고 맥락을 제어하는 방안이 필요했습니다.</p>
         </div>
@@ -90,8 +85,6 @@ function BlockmindPage() {
           <li>B. messages[]에서 해당 블록 관련 메시지 제거</li>
           <li className="font-bold text-gray-900">C. pivotIndex로 메시지 경계를 분리하여 슬라이싱 (채택)</li>
         </ul>
-
-        {/* A,B,C 기각 이유 */}
         <div className="prose max-w-none text-gray-600 space-y-2">
           <p>
             A안은 LLM이 지시를 무시할 수 있어 기억 차단이 불확실하고 토큰이 낭비될 것으로 예상되었습니다.<br/>
@@ -104,93 +97,86 @@ function BlockmindPage() {
           </p>
         </div>
 
-        {/* 구현 과정 */}
-        <div className="prose max-w-none text-gray-600">
-        </div>
-      </section>
+        <br/>
 
-      {/* 결과 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          결과
-        </h3>
+        {/* 결과 */}
+        <h4 className="text-xl font-bold text-gray-900">결과</h4>
         <div className="prose max-w-none text-gray-600">
           <p>결과 내용</p>
         </div>
       </section>
 
-      {/* ───────────── 2번째 문제 ───────────── */}
+      <br/>
 
-      {/* 문제 상황 2 */}
+      {/* 2번째 문제 */}
       <section className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          문제 상황 :
+          문제 상황 : 채팅 페이지 진입 시 빈 화면이 순간 노출되는 문제
         </h3>
+        <div className="prose max-w-none text-gray-600">
+          <p>
+          채팅 페이지 진입 시 채팅 목록, 채팅 화면, 블록 패널이 모두 빈 상태로 먼저 렌더링된 뒤 데이터가 뒤늦게 표시되었습니다.
+          </p>
+        </div>
+
+        <br/>
+
+        {/* 원인 */}
+        <h4 className="text-xl font-bold text-gray-900">원인</h4>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+
+        <br/>
+
+        {/* 해결 과정 */}
+        <h4 className="text-xl font-bold text-gray-900">해결 과정</h4>
+        <div className="prose max-w-none text-gray-600">
+        </div>
+
+        <br/>
+
+        {/* 결과 */}
+        <h4 className="text-xl font-bold text-gray-900">결과</h4>
         <div className="prose max-w-none text-gray-600">
         </div>
       </section>
 
-      {/* 원인 2 */}
+      <br/>
+
+      {/* ───────────── 3번째: 개선 사항 ───────────── */}
+
       <section className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          원인
+          개선 사항 : LLM API 호출 2회→1회로 통합하여 비용 N% 절감
         </h3>
+
+        {/* 현재 구조 */}
+        <h4 className="text-xl font-bold text-gray-900">현재 구조</h4>
+        <div className="prose max-w-none text-gray-600">
+          <p>
+            현재 사용자가 메시지를 보낼 때마다 채팅 응답(1회)과 블록 자동 추출(1회)로 LLM API가 2회 호출되고 있습니다.
+            대화가 늘어날수록 비용이 이중으로 누적되는 구조입니다.
+          </p>
+        </div>
+
+        <br/>
+
+        {/* 문제 인식 */}
+        <h4 className="text-xl font-bold text-gray-900">문제 인식</h4>
         <div className="prose max-w-none text-gray-600">
         </div>
-      </section>
 
-      {/* 해결 과정 2 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          해결 과정
-        </h3>
+        <br/>
+
+        {/* 개선 방향 */}
+        <h4 className="text-xl font-bold text-gray-900">개선 방향</h4>
         <div className="prose max-w-none text-gray-600">
         </div>
-      </section>
 
-      {/* 결과 2 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          결과
-        </h3>
-        <div className="prose max-w-none text-gray-600">
-        </div>
-      </section>
+        <br/>
 
-      {/* ───────────── 3번째 문제 ───────────── */}
-
-      {/* 문제 상황 3 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          문제 상황 :
-        </h3>
-        <div className="prose max-w-none text-gray-600">
-        </div>
-      </section>
-
-      {/* 원인 3 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          원인
-        </h3>
-        <div className="prose max-w-none text-gray-600">
-        </div>
-      </section>
-
-      {/* 해결 과정 3 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          해결 과정
-        </h3>
-        <div className="prose max-w-none text-gray-600">
-        </div>
-      </section>
-
-      {/* 결과 3 */}
-      <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
-          결과
-        </h3>
+        {/* 결과 */}
+        <h4 className="text-xl font-bold text-gray-900">결과</h4>
         <div className="prose max-w-none text-gray-600">
         </div>
       </section>
