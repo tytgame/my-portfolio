@@ -1,3 +1,25 @@
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+function CodeBlock({ language, fileName, children }) {
+  return (
+    <div className="rounded border border-border-light overflow-hidden text-xs">
+      {fileName && (
+        <div className="bg-gray-100 px-4 py-1.5 text-xs text-gray-500 border-b border-border-light">
+          {fileName}
+        </div>
+      )}
+      <SyntaxHighlighter
+        language={language}
+        style={oneLight}
+        customStyle={{ margin: 0, padding: '1rem', fontSize: '0.75rem', background: '#fafafa' }}
+      >
+        {children}
+      </SyntaxHighlighter>
+    </div>
+  );
+}
+
 function BlockmindPage() {
   return (
     <article className="space-y-12">
@@ -62,7 +84,7 @@ function BlockmindPage() {
         {/* 원인 */}
         <h4 className="text-xl font-bold text-gray-900">원인</h4>
         <img
-          src="/BlockmindReason1.png"
+          src="/BlockmindCause.png"
           alt="블록 토글 시 요청 흐름"
           className="w-full max-w-2xl mx-auto rounded"
         />
@@ -83,26 +105,111 @@ function BlockmindPage() {
         <ul className="text-gray-600 space-y-1">
           <li>A. 시스템 프롬프트에 직접 "Forget" 지시</li>
           <li>B. messages[]에서 해당 블록 관련 메시지 제거</li>
-          <li className="font-bold text-gray-900">C. pivotIndex로 메시지 경계를 분리하여 슬라이싱 (채택)</li>
+          <li className="font-bold text-gray-900">C. 화면 표시용과 모델 전송용 히스토리를 분리하는 상태 구조 재설계 (채택)</li>
         </ul>
         <div className="prose max-w-none text-gray-600 space-y-2">
           <p>
-            A안은 LLM이 지시를 무시할 수 있어 기억 차단이 불확실하고 토큰이 낭비될 것으로 예상되었습니다.<br/>
-            B안은 채팅 내역이 화면에서 완전히 사라져 UX를 크게 저하하고 대화 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900">A안</strong>은 LLM이 지시를 무시할 수 있어 기억 차단이 불확실하고, 지시 내용이 프롬프트에 추가되어 토큰 비용이 부가적으로 발생할 것으로 예상되었습니다.
           </p>
           <p>
-            C안은 UI 변경 없이 LLM에게 전달되는 맥락만 제어하는 방식으로,
-            과거 대화가 LLM에게 전달되지 않아 기억 차단이 확실한 방안으로 채택하었습니다.
-            이 방식은 사용자의 조작이 곧바로 모델 입력 경계에 반영되도록 상태 구조를 재설계해야 했습니다.
+            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
           </p>
+          <p>
+            <strong className="text-gray-900">C안</strong>은 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.
+            화면에는 전체 대화를 유지하면서, 모델에게는 토글 시점 이후의 메시지만 전달하여 대화 내용이 변경되지 않은채로 맥락을 제어할 수 있어 이 방식을 채택하였습니다.
+          </p>
+        </div>
+
+        <br/>
+
+        {/* 구현 상세 */}
+        <div className="prose max-w-none text-gray-600 space-y-4">
+          <p className="font-bold text-gray-900">1. 상태 분리 설계</p>
+          <p>
+            기존에는 하나의 messages 배열이 화면 렌더링과 API 전송에 동시에 사용되고 있었습니다.
+            이를 두 가지 역할로 분리했습니다.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong className="text-gray-900">display history</strong>: 전체 대화 내역 (UI 표시용, 항상 유지)</li>
+            <li><strong className="text-gray-900">inference history</strong>: 토글 시점 이후 메시지만 (모델 전송용)</li>
+          </ul>
+          <p>
+            블록 토글 시점의 메시지 위치를 pivotIndex로 기록하고, 서버에서는 messages.slice(pivotIndex)로 해당 시점 이후 메시지만 모델에 전달합니다.
+          </p>
+          <CodeBlock language="typescript" fileName="slice-messages-by-reset.ts">
+{`export function sliceMessagesByReset(messages, pivotIndex) {
+  if (pivotIndex == null) return messages;
+  return messages.slice(pivotIndex);
+}`}
+          </CodeBlock>
+
+          <p className="font-bold text-gray-900">2. 경계 캡처 타이밍</p>
+          <p>
+            블록 토글 직후 바로 messages.length를 읽는 것으로는 정확한 경계가 보장되지 않았습니다.
+            그래서 lastResetAt을 이벤트 트리거로 사용하고, useEffect에서 렌더 완료 후 messages.length를 pivotIndex로 기록했습니다.
+            messages를 deps에 넣지 않은 것은 의도적입니다. 매번 최신 길이를 추적하는 것이 아니라, 리셋이 발생한 순간의 경계를 고정하는 것이 목적이었기 때문입니다.
+          </p>
+
+          <p className="font-bold text-gray-900">3. 요청 시점 정합성 — stale closure 방지</p>
+          <p>
+            transport를 한 번 생성하고 클로저로 상태를 캡처하면, 이후 토글 상태가 바뀌어도 오래된 값이 전송될 수 있습니다.
+            그래서 body() 안에서 useBlockStore.getState()로 요청 시점의 최신 상태를 읽도록 했습니다.
+          </p>
+          <CodeBlock language="typescript" fileName="chat-interface.tsx">
+{`body: () => {
+  const { blocks, pivotIndex } = useBlockStore.getState();
+  return { systemPrompt: buildSystemPrompt(blocks), pivotIndex };
+}`}
+          </CodeBlock>
         </div>
 
         <br/>
 
         {/* 결과 */}
         <h4 className="text-xl font-bold text-gray-900">결과</h4>
-        <div className="prose max-w-none text-gray-600">
-          <p>결과 내용</p>
+
+        {/* 수정 후 흐름도 */}
+        <img
+          src="/BlockmindResult.png"
+          alt="수정 후 요청 흐름"
+          className="w-full max-w-2xl mx-auto rounded"
+        />
+
+        {/* E2E 테스트 결과 */}
+        <div className="prose max-w-none text-gray-600 space-y-2">
+          <p>Playwright E2E 테스트로 실제 사용자 플로우에서 동작을 검증했습니다.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-gray-600">
+              <thead>
+                <tr className="border-b border-border-light text-left">
+                  <th className="py-2 pr-4 font-bold text-gray-900">단계</th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">사용자 행동</th>
+                  <th className="py-2 font-bold text-gray-900">AI 응답</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4">1</td>
+                  <td className="py-2 pr-4">블록 활성 상태에서 "내 이름이 뭐야?"</td>
+                  <td className="py-2">"홍길동님입니다"</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4">2</td>
+                  <td className="py-2 pr-4">블록 비활성화 후 "내 이름이 뭐야?"</td>
+                  <td className="py-2">"알 수 없습니다"</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4">3</td>
+                  <td className="py-2 pr-4">블록 재활성화 후 "내 이름이 뭐야?"</td>
+                  <td className="py-2">"홍길동님입니다"</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            결과적으로 블록 토글 후에도 UI의 채팅 내역은 그대로 유지되며, 모델에게 전달되는 맥락만 차단되었습니다.
+            또한 토글 시점 이전의 불필요한 과거 대화가 전송되지 않아 토큰 비용도 절감되었습니다.
+          </p>
         </div>
       </section>
 
