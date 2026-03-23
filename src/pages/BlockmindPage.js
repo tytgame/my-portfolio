@@ -64,14 +64,13 @@ function BlockmindPage() {
 
         <div className="prose max-w-none text-gray-600">
           <p>
-          블록 비활성화를 누르면 해당 정보가 다음 응답부터 즉시 제외될 것으로 기대했습니다. <br/>
-          하지만 실제로는 블록을 비활성화해도 AI가 블록에 있는 이름, 나이, 직업 등을 그대로 기억하고 답변했습니다.
+          블록을 비활성화하면 다음 응답부터 블록에 담긴 정보를 참조하지 않고 답변하리라 기대했지만 실제로는 AI가 블록에 있는 이름, 나이, 직업 등을 그대로 기억하고 답변했습니다.
           </p>
           <br/>
           <div>
             <p className="font-bold text-gray-900 mb-2">예시</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>블록 내용: "홍길동, 강남, 30세, 백엔드 엔지니어"</li>
+              <li>블록 내용: [홍길동 · 강남 · 30세 · 백엔드 엔지니어]</li>
               <li>블록 비활성화 후 질문: "내 이름이 뭐야?"</li>
               <li>기대: "알 수 없습니다"</li>
               <li>실제: "홍길동님입니다"</li>
@@ -89,9 +88,9 @@ function BlockmindPage() {
           className="w-full max-w-2xl mx-auto rounded"
         />
         <div className="prose max-w-none text-gray-600">
-          <p>처음에는 세션에서 LLM이 정보를 기억하는 내부의 고유한 특성 문제라고 생각했지만,
-          개발자 도구 Network의 채팅 payload를 뜯어본 결과 systemPrompt는 제거됐지만 해당 정보를 담고있는 message 배열은 그대로 전송하고 있다는게 원인으로 밝혀졌습니다.<br/>
-          문제의 본질은 LLM 기억이 아니라 UI 상태와 inference payload가 서로 다른 소스 오브 트루스를 가지고 있었던 것이었습니다.
+          <p>처음엔 LLM이 세션별로 정보를 기억하는 내부의 고유한 특성을 이유로 생각했지만 사실은 이와 달랐습니다.<br/>
+            블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다.<br/>
+            즉, LLM은 systemPrompt와 messages[]를 모두 읽기 때문에, 메시지 배열에 남아 있는 과거 정보가 그대로 참조되고 있었던 것이 원인이었습니다.
           </p>
         </div>
 
@@ -109,14 +108,14 @@ function BlockmindPage() {
         </ul>
         <div className="prose max-w-none text-gray-600 space-y-2">
           <p>
-            <strong className="text-gray-900">A안</strong>은 LLM이 지시를 무시할 수 있어 기억 차단이 불확실하고, 지시 내용이 프롬프트에 추가되어 토큰 비용이 부가적으로 발생할 것으로 예상되었습니다.
+            <strong className="text-gray-900">A안</strong>은 프롬프트 지시에 대한 LLM의 응답이 비결정적이기 때문에 사용자의 조작이 실제 응답으로 확실하게 연결되지 않는 문제가 있었습니다.
           </p>
           <p>
-            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지를 판단하는 기준이 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
           </p>
           <p>
-            <strong className="text-gray-900">C안</strong>은 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.
-            화면에는 전체 대화를 유지하면서, 모델에게는 토글 시점 이후의 메시지만 전달하여 대화 내용이 변경되지 않은채로 맥락을 제어할 수 있어 이 방식을 채택하였습니다.
+            <strong className="text-gray-900">C안</strong>은 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.<br/>
+            화면에는 전체 대화를 유지하면서 모델에게는 토글 시점 이후의 메시지만 전달하여 대화 내용이 변경되지 않은채로 맥락을 제어할 수 있어 <strong className="text-gray-900">이 방안을 채택하고 구현을 진행하였습니다.</strong>
           </p>
         </div>
 

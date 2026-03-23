@@ -22,12 +22,24 @@ function HereDoggyPage() {
 
       {/* 스크린샷 그리드 */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {['홈 & 로그인', '산책 추적', '커뮤니티', '마이페이지'].map((label) => (
+        {[
+          { label: '홈 & 로그인', src: '/HereDoggyHome.jpg' },
+          { label: '산책 추적', src: '' },
+          { label: '커뮤니티', src: '' },
+          { label: '마이페이지', src: '' },
+        ].map(({ label, src }) => (
           <div
             key={label}
-            className="aspect-[9/19] bg-surface-light border border-border-light rounded-lg flex items-end justify-center"
+            className="bg-surface-light border border-border-light rounded-lg overflow-hidden flex flex-col"
           >
-            <span className="text-xs font-mono bg-white/90 px-2 py-1 mb-2">{label}</span>
+            <div className="aspect-[9/19] overflow-hidden">
+              {src ? (
+                <img src={src} alt={label} className="w-full h-full object-cover object-top" />
+              ) : (
+                <div className="w-full h-full" />
+              )}
+            </div>
+            <span className="text-xs font-mono px-2 py-2 text-center border-t border-border-light">{label}</span>
           </div>
         ))}
       </section>
