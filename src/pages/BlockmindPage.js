@@ -11,7 +11,10 @@ function CodeBlock({ language, fileName, children }) {
       )}
       <SyntaxHighlighter
         language={language}
-        style={oneLight}
+        style={{
+          ...oneLight,
+          'comment': { ...oneLight['comment'], color: '#d19a66' },
+        }}
         customStyle={{ margin: 0, padding: '1rem', fontSize: '0.75rem', background: '#fafafa' }}
       >
         {children}
@@ -111,7 +114,7 @@ function BlockmindPage() {
             <strong className="text-gray-900">A안</strong>은 프롬프트 지시에 대한 LLM의 응답이 비결정적이기 때문에 사용자의 조작이 실제 응답으로 확실하게 연결되지 않는 문제가 있었습니다.
           </p>
           <p>
-            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지를 판단하는 기준이 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지의 경계가 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
           </p>
           <p>
             <strong className="text-gray-900">C안</strong>은 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.<br/>
@@ -123,7 +126,7 @@ function BlockmindPage() {
 
         {/* 구현 상세 */}
         <div className="prose max-w-none text-gray-600 space-y-4">
-          <p className="font-bold text-gray-900">1. 상태 분리 설계</p>
+          <p className="font-bold text-gray-900">1. 상태 분리 설계 <span className="font-normal text-gray-400">— 화면 표시용과 모델 전송용으로 분기</span></p>
           <p>
             기존에는 하나의 messages 배열이 화면 렌더링과 API 전송에 동시에 사용되고 있었습니다.
             이를 두 가지 역할로 분리했습니다.
@@ -141,21 +144,25 @@ function BlockmindPage() {
   return messages.slice(pivotIndex);
 }`}
           </CodeBlock>
+          <br/>
 
-          <p className="font-bold text-gray-900">2. 경계 캡처 타이밍</p>
+          <p className="font-bold text-gray-900">2. 경계 캡처 타이밍 <span className="font-normal text-gray-400">— 토글 시점의 메시지 경계를 기록</span></p>
           <p>
             블록 토글 직후 바로 messages.length를 읽는 것으로는 정확한 경계가 보장되지 않았습니다.
             그래서 lastResetAt을 이벤트 트리거로 사용하고, useEffect에서 렌더 완료 후 messages.length를 pivotIndex로 기록했습니다.
             messages를 deps에 넣지 않은 것은 의도적입니다. 매번 최신 길이를 추적하는 것이 아니라, 리셋이 발생한 순간의 경계를 고정하는 것이 목적이었기 때문입니다.
           </p>
 
-          <p className="font-bold text-gray-900">3. 요청 시점 정합성 — stale closure 방지</p>
+          <br/>
+
+          <p className="font-bold text-gray-900">3. 요청 시점 정합성 (stale closure 방지) <span className="font-normal text-gray-400">— 채팅 전송 시점에 경계 인덱스와 블록 상태를 읽음</span></p>
           <p>
             transport를 한 번 생성하고 클로저로 상태를 캡처하면, 이후 토글 상태가 바뀌어도 오래된 값이 전송될 수 있습니다.
             그래서 body() 안에서 useBlockStore.getState()로 요청 시점의 최신 상태를 읽도록 했습니다.
           </p>
           <CodeBlock language="typescript" fileName="chat-interface.tsx">
 {`body: () => {
+  // 렌더 시점이 아닌 요청 시점의 최신 상태를 읽음
   const { blocks, pivotIndex } = useBlockStore.getState();
   return { systemPrompt: buildSystemPrompt(blocks), pivotIndex };
 }`}
