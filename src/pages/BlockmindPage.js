@@ -108,17 +108,17 @@ function BlockmindPage() {
         <ul className="text-gray-600 space-y-1">
           <li>A. 시스템 프롬프트에 직접 "Forget" 지시</li>
           <li>B. 메시지 배열에서 해당 블록 관련 메시지 제거</li>
-          <li className="font-bold text-gray-900">C. 메시지 배열은 유지한 채 토글 시점 기준으로 모델 전송 범위를 슬라이싱하여 전송 (채택)</li>
+          <li className="font-bold text-gray-900">C. 메시지 배열은 유지한 채 토글 시점 기준으로 모델에 전송할 메시지를 슬라이싱하여 전송 (채택)</li>
         </ul>
         <div className="prose max-w-none text-gray-600 space-y-2">
           <p>
-            <strong className="text-gray-900">A안</strong>은 프롬프트 지시에 대한 LLM의 응답이 비결정적이기 때문에 사용자의 조작이 실제 응답으로 확실하게 연결되지 않는 문제가 있었습니다.
+            <strong className="text-gray-900">A안 -</strong> 블록 토글은 결정론적으로 반영되어야 하는 사용자 조작이지만 프롬프트 지시에 대한 LLM의 응답은 비결정적이므로 안정성을 보장하기 어렵다고 판단했습니다.
           </p>
           <p>
-            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지들을 판단하는 기준이 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900">B안 -</strong> 블록 관련 메시지들을 판단하는 기준이 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
           </p>
           <p>
-            <strong className="text-gray-900">C안</strong>은 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.<br/>
+            <strong className="text-gray-900">C안 -</strong> 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.<br/>
             배열 자체는 그대로 유지하되 토글 시점을 pivotIndex로 기록하고 전송 시점에 그 이후의 메시지만 잘라서 모델에 전달합니다. 화면에는 전체 대화가 유지되므로 사용자 경험을 해치지 않으면서 맥락을 제어할 수 있어 이 방안을 채택하였습니다.
           </p>
         </div>
