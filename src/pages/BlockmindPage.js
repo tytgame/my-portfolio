@@ -61,7 +61,7 @@ function BlockmindPage() {
 
       {/* 1번째 문제 */}
       <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+        <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           문제 상황 : 블록 비활성화가 AI 응답에 반영되지 않는 문제
         </h3>
 
@@ -92,8 +92,9 @@ function BlockmindPage() {
         />
         <div className="prose max-w-none text-gray-600">
           <p>처음엔 LLM이 세션별로 정보를 기억하는 내부의 고유한 특성을 이유로 생각했지만 사실은 이와 달랐습니다.<br/>
-            블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다.<br/>
-            즉, LLM은 systemPrompt와 messages[]를 모두 읽기 때문에, 메시지 배열에 남아 있는 과거 정보가 그대로 참조되고 있었던 것이 원인이었습니다.
+            블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다. 
+            즉, LLM은 systemPrompt와 messages[]를 모두 읽기 때문에, 메시지 배열에 남아 있는 과거 정보가 그대로 참조되고 있었던 것이 원인이었습니다.<br/>
+            또한 이 messages 배열은 화면 렌더링에도 동시에 사용되고 있어, 전송 데이터만 수정하면 채팅 UI도 함께 변하는 구조적 문제가 있었습니다.
           </p>
         </div>
 
@@ -106,66 +107,115 @@ function BlockmindPage() {
         </div>
         <ul className="text-gray-600 space-y-1">
           <li>A. 시스템 프롬프트에 직접 "Forget" 지시</li>
-          <li>B. messages[]에서 해당 블록 관련 메시지 제거</li>
-          <li className="font-bold text-gray-900">C. 화면 표시용과 모델 전송용 히스토리를 분리하는 상태 구조 재설계 (채택)</li>
+          <li>B. 메시지 배열에서 해당 블록 관련 메시지 제거</li>
+          <li className="font-bold text-gray-900">C. 메시지 배열은 유지한 채 토글 시점 기준으로 모델 전송 범위를 슬라이싱하여 전송 (채택)</li>
         </ul>
         <div className="prose max-w-none text-gray-600 space-y-2">
           <p>
             <strong className="text-gray-900">A안</strong>은 프롬프트 지시에 대한 LLM의 응답이 비결정적이기 때문에 사용자의 조작이 실제 응답으로 확실하게 연결되지 않는 문제가 있었습니다.
           </p>
           <p>
-            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지의 경계가 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900">B안</strong>은 블록 관련 메시지들을 판단하는 기준이 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
           </p>
           <p>
             <strong className="text-gray-900">C안</strong>은 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.<br/>
-            화면에는 전체 대화를 유지하면서 모델에게는 토글 시점 이후의 메시지만 전달하여 대화 내용이 변경되지 않은채로 맥락을 제어할 수 있어 <strong className="text-gray-900">이 방안을 채택하고 구현을 진행하였습니다.</strong>
+            배열 자체는 그대로 유지하되 토글 시점을 pivotIndex로 기록하고 전송 시점에 그 이후의 메시지만 잘라서 모델에 전달합니다. 화면에는 전체 대화가 유지되므로 사용자 경험을 해치지 않으면서 맥락을 제어할 수 있어 이 방안을 채택하였습니다.
           </p>
         </div>
-
-        <br/>
+        <hr/>
+        
 
         {/* 구현 상세 */}
         <div className="prose max-w-none text-gray-600 space-y-4">
-          <p className="font-bold text-gray-900">1. 상태 분리 설계 <span className="font-normal text-gray-400">— 화면 표시용과 모델 전송용으로 분기</span></p>
+          <p className="font-bold text-gray-900">1. 타임스탬프 방식 시도 → 실패</p>
           <p>
-            기존에는 하나의 messages 배열이 화면 렌더링과 API 전송에 동시에 사용되고 있었습니다.
-            이를 두 가지 역할로 분리했습니다.
+            처음에는 블록 토글 시각(lastResetAt)을 기록하고, message.createdAt {'>'} lastResetAt인 메시지만 필터링하는 방식으로 접근했습니다.
+            하지만 useChat이 반환하는 메시지에는 createdAt 필드가 보장되지 않았습니다.
+            경계 판별을 라이브러리 내부 구현 세부사항에 의존하고 있었고, 이는 안정적인 상태 모델의 기준이 될 수 없었습니다.
           </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><strong className="text-gray-900">display history</strong>: 전체 대화 내역 (UI 표시용, 항상 유지)</li>
-            <li><strong className="text-gray-900">inference history</strong>: 토글 시점 이후 메시지만 (모델 전송용)</li>
-          </ul>
           <p>
-            블록 토글 시점의 메시지 위치를 pivotIndex로 기록하고, 서버에서는 messages.slice(pivotIndex)로 해당 시점 이후 메시지만 모델에 전달합니다.
+            그래서 시간 대신 <strong className="text-gray-900">배열 인덱스 기반의 pivot boundary</strong>로 전환했습니다.
           </p>
           <CodeBlock language="typescript" fileName="slice-messages-by-reset.ts">
-{`export function sliceMessagesByReset(messages, pivotIndex) {
+{`export function sliceMessagesByReset<T>(
+  messages: T[],
+  pivotIndex: number | null | undefined
+): T[] {
   if (pivotIndex == null) return messages;
   return messages.slice(pivotIndex);
 }`}
           </CodeBlock>
+
           <br/>
 
-          <p className="font-bold text-gray-900">2. 경계 캡처 타이밍 <span className="font-normal text-gray-400">— 토글 시점의 메시지 경계를 기록</span></p>
+          <p className="font-bold text-gray-900">2. pivotIndex 저장 위치: ref vs 전역 상태</p>
           <p>
-            블록 토글 직후 바로 messages.length를 읽는 것으로는 정확한 경계가 보장되지 않았습니다.
-            그래서 lastResetAt을 이벤트 트리거로 사용하고, useEffect에서 렌더 완료 후 messages.length를 pivotIndex로 기록했습니다.
-            messages를 deps에 넣지 않은 것은 의도적입니다. 매번 최신 길이를 추적하는 것이 아니라, 리셋이 발생한 순간의 경계를 고정하는 것이 목적이었기 때문입니다.
+            처음에는 ref에 저장해 컴포넌트 내부에서 처리하려 했습니다.
+            하지만 pivotIndex는 단순한 렌더 캐시가 아니었습니다. 이 값은:
           </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>블록 토글 시점에 결정되고</li>
+            <li>이후 네트워크 요청 시 사용되며</li>
+            <li>컴포넌트 렌더링과 분리된 시점에서도 일관되게 읽혀야 했습니다</li>
+          </ul>
+          <p>
+            즉 <strong className="text-gray-900">요청 경계를 표현하는 앱 상태</strong>였기 때문에, 렌더 단계에서 불안정하게 다뤄질 수 있는 ref보다 Zustand store가 설계적으로 적절했습니다.
+          </p>
+          <CodeBlock language="typescript" fileName="block-store.ts">
+{`pivotIndex: null,
+setPivotIndex: (index) => set({ pivotIndex: index }),`}
+          </CodeBlock>
 
           <br/>
 
-          <p className="font-bold text-gray-900">3. 요청 시점 정합성 (stale closure 방지) <span className="font-normal text-gray-400">— 채팅 전송 시점에 경계 인덱스와 블록 상태를 읽음</span></p>
+          <p className="font-bold text-gray-900">3. 경계 캡처 타이밍: 렌더 중이 아닌 커밋 이후</p>
           <p>
-            transport를 한 번 생성하고 클로저로 상태를 캡처하면, 이후 토글 상태가 바뀌어도 오래된 값이 전송될 수 있습니다.
-            그래서 body() 안에서 useBlockStore.getState()로 요청 시점의 최신 상태를 읽도록 했습니다.
+            블록 토글 직후 바로 messages.length를 읽는다고 해서 올바른 경계가 보장되지 않았습니다.
+            리셋 경계는 토글이 반영된 뒤의 현재 대화 길이를 기준으로 확정되어야 했습니다.
+          </p>
+          <p>
+            그래서 lastResetAt을 이벤트 트리거로, useEffect에서 렌더 완료 후 messages.length를 pivotIndex로 기록했습니다.
+            messages를 deps에 넣지 않은 것은 의도적입니다. 목표는 매번 최신 길이를 반영하는 것이 아니라, <strong className="text-gray-900">리셋이 발생한 순간의 경계를 고정</strong>하는 것이었기 때문입니다.
           </p>
           <CodeBlock language="typescript" fileName="chat-interface.tsx">
-{`body: () => {
-  // 렌더 시점이 아닌 요청 시점의 최신 상태를 읽음
-  const { blocks, pivotIndex } = useBlockStore.getState();
-  return { systemPrompt: buildSystemPrompt(blocks), pivotIndex };
-}`}
+{`const lastResetAt = useBlockStore((state) => state.lastResetAt);
+
+useEffect(() => {
+  if (lastResetAt === null) return;
+  useBlockStore.getState().setPivotIndex(messages.length);
+}, [lastResetAt]); // messages는 의도적으로 deps 제외`}
+          </CodeBlock>
+
+          <br/>
+
+          <p className="font-bold text-gray-900">4. 요청 시점의 stale closure 방지</p>
+          <p>
+            transport를 한 번 생성하고 그 안에서 클로저로 pivotIndex나 blocks를 캡처하면, 이후 상태가 바뀌어도 오래된 값이 전송될 수 있습니다.
+            그래서 body() 안에서 useBlockStore.getState()로 <strong className="text-gray-900">요청 시점의 최신 상태</strong>를 읽도록 했습니다.
+          </p>
+          <CodeBlock language="typescript" fileName="chat-interface.tsx">
+{`const transport = useMemo(
+  () =>
+    new DefaultChatTransport({
+      api: '/api/chat',
+      body: () => {
+        const { blocks, pivotIndex } = useBlockStore.getState();
+        return { systemPrompt: buildSystemPrompt(blocks), pivotIndex };
+      },
+    }),
+  []
+);`}
+          </CodeBlock>
+
+          <br/>
+
+          <p className="font-bold text-gray-900">5. API 서버 적용</p>
+          <p>
+            클라이언트에서 전달된 pivotIndex를 기반으로 서버에서 메시지를 슬라이싱합니다.
+          </p>
+          <CodeBlock language="typescript" fileName="app/api/chat/route.ts">
+{`const { messages, systemPrompt, pivotIndex } = await req.json();
+const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
           </CodeBlock>
         </div>
 
@@ -181,40 +231,48 @@ function BlockmindPage() {
           className="w-full max-w-2xl mx-auto rounded"
         />
 
-        {/* E2E 테스트 결과 */}
-        <div className="prose max-w-none text-gray-600 space-y-2">
-          <p>Playwright E2E 테스트로 실제 사용자 플로우에서 동작을 검증했습니다.</p>
+        {/* 검증 */}
+        <div className="prose max-w-none text-gray-600 space-y-4">
+          <p className="font-bold text-gray-900">검증</p>
+          <p>
+            sliceMessagesByReset 함수에 대해 15개의 단위 테스트를 작성하여 경계값, 빈 배열, 원본 불변성, 실제 토글 시나리오를 검증했습니다.
+            전체 사용자 플로우는 Playwright E2E 테스트로 확인했습니다.
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-gray-600">
               <thead>
                 <tr className="border-b border-border-light text-left">
                   <th className="py-2 pr-4 font-bold text-gray-900">단계</th>
                   <th className="py-2 pr-4 font-bold text-gray-900">사용자 행동</th>
-                  <th className="py-2 font-bold text-gray-900">AI 응답</th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">AI 응답</th>
+                  <th className="py-2 font-bold text-gray-900">결과</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-border-light">
                   <td className="py-2 pr-4">1</td>
                   <td className="py-2 pr-4">블록 활성 상태에서 "내 이름이 뭐야?"</td>
-                  <td className="py-2">"홍길동님입니다"</td>
+                  <td className="py-2 pr-4">"홍길동님입니다"</td>
+                  <td className="py-2">PASS</td>
                 </tr>
                 <tr className="border-b border-border-light">
                   <td className="py-2 pr-4">2</td>
                   <td className="py-2 pr-4">블록 비활성화 후 "내 이름이 뭐야?"</td>
-                  <td className="py-2">"알 수 없습니다"</td>
+                  <td className="py-2 pr-4">"알 수 없습니다"</td>
+                  <td className="py-2">PASS</td>
                 </tr>
                 <tr className="border-b border-border-light">
                   <td className="py-2 pr-4">3</td>
                   <td className="py-2 pr-4">블록 재활성화 후 "내 이름이 뭐야?"</td>
-                  <td className="py-2">"홍길동님입니다"</td>
+                  <td className="py-2 pr-4">"홍길동님입니다"</td>
+                  <td className="py-2">PASS</td>
                 </tr>
               </tbody>
             </table>
           </div>
+
           <p>
-            결과적으로 블록 토글 후에도 UI의 채팅 내역은 그대로 유지되며, 모델에게 전달되는 맥락만 차단되었습니다.
-            또한 토글 시점 이전의 불필요한 과거 대화가 전송되지 않아 토큰 비용도 절감되었습니다.
+            결과적으로 블록 토글 후에도 UI의 채팅 내역은 그대로 유지되면서, 사용자의 블록 조작이 AI 응답에 결정적으로 반영되는 구조를 확보했습니다.
           </p>
         </div>
       </section>
@@ -223,7 +281,7 @@ function BlockmindPage() {
 
       {/* 2번째 문제 */}
       <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+        <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           문제 상황 : 페이지 리로드 시 빈 화면이 순간 노출되는 문제
         </h3>
         <div className="prose max-w-none text-gray-600">
@@ -281,7 +339,7 @@ function BlockmindPage() {
       {/* ───────────── 3번째: 개선 사항 ───────────── */}
 
       <section className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+        <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           개선 사항 : LLM API 호출 2회→1회로 통합하여 비용 N% 절감
         </h3>
 
