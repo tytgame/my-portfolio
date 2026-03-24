@@ -33,7 +33,7 @@ function WhereGoPage() {
       </section>
 
       {/* 문제 상황 */}
-      <section className="space-y-4">
+      <section id="wg-1" className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">
           문제 상황 정의: 비효율적인 일정 수정 UX
         </h3>

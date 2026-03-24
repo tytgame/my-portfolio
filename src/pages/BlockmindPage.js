@@ -60,7 +60,7 @@ function BlockmindPage() {
       </section>
 
       {/* 1번째 문제 */}
-      <section className="space-y-4">
+      <section id="bm-1" className="space-y-4">
         <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           문제 상황 : 블록 비활성화가 AI 응답에 반영되지 않는 문제
         </h3>
@@ -317,7 +317,7 @@ const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
       <br/>
 
       {/* 2번째 문제 */}
-      <section className="space-y-4">
+      <section id="bm-2" className="space-y-4">
         <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           문제 상황 : 페이지 리로드 시 빈 화면이 순간 노출되는 문제
         </h3>
@@ -375,7 +375,7 @@ const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
 
       {/* ───────────── 3번째: 개선 사항 ───────────── */}
 
-      <section className="space-y-4">
+      <section id="bm-3" className="space-y-4">
         <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           개선 사항 : LLM API 호출 2회→1회로 통합하여 비용 N% 절감
         </h3>
