@@ -13,7 +13,7 @@ function CodeBlock({ language, fileName, children }) {
         language={language}
         style={{
           ...oneLight,
-          'comment': { ...oneLight['comment'], color: '#d19a66' },
+          'comment': { ...oneLight['comment'], color: '#b35900' },
         }}
         customStyle={{ margin: 0, padding: '1rem', fontSize: '0.75rem', background: '#fafafa' }}
       >
@@ -100,8 +100,8 @@ function BlockmindPage() {
 
         <br/>
 
-        {/* 해결 과정 */}
-        <h4 className="text-xl font-bold text-gray-900">해결 과정</h4>
+        {/* 대안 선택 */}
+        <h4 className="text-xl font-bold text-gray-900">대안 선택</h4>
         <div className="prose max-w-none text-gray-600">
           <p>이 문제를 해결하기 위해 세 가지 대안을 검토했습니다. 블록 활성화 상태에 따라 대화가 사라지는 등 사용자 경험을 방해하지 않고 맥락을 제어하는 방안이 필요했습니다.</p>
         </div>
@@ -125,8 +125,45 @@ function BlockmindPage() {
         <hr/>
         
 
-        {/* 구현 상세 */}
+        {/* 구현 과정 */}
+        <h4 className="text-xl font-bold text-gray-900">구현 과정</h4>
         <div className="prose max-w-none text-gray-600 space-y-4">
+          <p className="font-bold text-gray-900">상태 모델 재설계</p>
+          <p>
+            하나의 메시지 배열을 화면과 모델 입력에 같이 쓰지 않고, 역할을 분리했습니다.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong className="text-gray-900">display history</strong>: 전체 채팅 내역 (UI 표시용, 항상 유지)</li>
+            <li><strong className="text-gray-900">inference history</strong>: pivotIndex 이후 메시지만 (모델 전송용)</li>
+            <li><strong className="text-gray-900">active context</strong>: isVisible === true인 블록들 (시스템 프롬프트)</li>
+          </ul>
+          <img
+            src="/BlockmindRedesign.png"
+            alt="상태 모델 재설계 흐름도"
+            className="w-full max-w-2xl mx-auto rounded"
+          />
+          <p>
+            이 분리를 위해 블록의 visibility가 변경되는 시점을 감지하는 이벤트 발행이 필요했습니다.
+            Zustand store의 updateBlock 안에서 isVisible 값이 실제로 변경될 때만 lastResetAt을 기록하도록 조건을 추가했습니다.
+            라벨이나 내용 수정은 리셋을 발생시키지 않습니다.
+          </p>
+          <CodeBlock language="typescript" fileName="block-store.ts">
+{`// isVisible 값이 실제로 변경된 경우만 감지
+const isVisibilityChange =
+  updates.isVisible !== undefined && target?.isVisible !== updates.isVisible;
+
+return {
+  blocks: state.blocks.map((block) =>
+    block.id === id ? { ...block, ...updates } : block
+  ),
+  // visibility 변경 시에만 리셋 타임스탬프 기록
+  ...(isVisibilityChange ? { lastResetAt: Date.now() } : {}),
+};`}
+          </CodeBlock>
+          <p>
+            이 구조로 대화를 지우지 않고도 컨텍스트만 끊는 non-destructive reset이 가능해졌습니다.
+          </p>
+
           <p className="font-bold text-gray-900">1. 타임스탬프 방식 시도 → 실패</p>
           <p>
             처음에는 블록 토글 시각(lastResetAt)을 기록하고, message.createdAt {'>'} lastResetAt인 메시지만 필터링하는 방식으로 접근했습니다.
@@ -312,7 +349,7 @@ const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
           <div>
             <p className="font-bold text-gray-900 mb-2 text-center">수정 전</p>
             <video
-              src="/BlockmindBeforeShort.mp4"
+              src="/BlockmindBefore.mp4"
               autoPlay
               loop
               muted
@@ -323,7 +360,7 @@ const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
           <div>
             <p className="font-bold text-gray-900 mb-2 text-center">수정 후</p>
             <video
-              src="/BlockmindAfterShort.mp4"
+              src="/BlockmindAfter.mp4"
               autoPlay
               loop
               muted
