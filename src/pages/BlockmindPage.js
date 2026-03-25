@@ -91,7 +91,7 @@ function BlockmindPage() {
           className="w-full max-w-2xl mx-auto rounded"
         />
         <div className="prose max-w-none text-gray-600">
-          <p>처음엔 <strong className="text-gray-900">LLM의 컨텍스트 윈도우</strong>가 영향을 주는 것으로 생각했지만 사실은 이와 달랐습니다.
+          <p>처음엔 <strong className="text-gray-900">LLM이 자체적으로 내용을 기억하는 고유한 특성</strong>을 원인으로 생각했지만 사실은 이와 달랐습니다.
           <br/><br/>
             블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다.
             <br/>
@@ -101,7 +101,7 @@ function BlockmindPage() {
           </p>
         </div>
 
-        <br/>
+        <br/><br/>
 
         {/* 대안 선택 */}
         <h4 className="text-xl font-bold text-gray-900">대안 선택</h4>
@@ -111,21 +111,21 @@ function BlockmindPage() {
         <ul className="text-gray-600 space-y-1">
           <li>A. 시스템 프롬프트에 직접 "Forget" 지시</li>
           <li>B. 메시지 배열에서 해당 블록 관련 메시지 제거</li>
-          <li className="font-bold text-gray-900">C. 메시지 배열은 유지한 채 모델에 보내는 메시지만 분리하여 전송</li>
+          <li className="font-bold text-gray-900">C. 메시지 배열은 유지한 채 모델에 보내는 메시지만 정제하여 전송</li>
         </ul>
         <div className="prose max-w-none text-gray-600 space-y-2">
           <p className="pl-12">
             <strong className="text-gray-900 -ml-12">A안 -</strong> 블록 토글은 결정론적으로 반영되어야 하는 사용자 조작이지만 프롬프트 지시에 대한 <strong className="text-gray-900">LLM의 응답은 비결정적</strong>이므로 안정성을 보장하기 어렵다고 판단했습니다.
           </p>
           <p className="pl-12">
-            <strong className="text-gray-900 -ml-12">B안 -</strong> <strong className="text-gray-900">어떤 메시지가 블록과 관련된 것인지 의미적으로 판단</strong>해야 하기 때문에 삭제 기준이 일관되기 어렵고, 또한 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화의 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900 -ml-12">B안 -</strong> <strong className="text-gray-900">어떤 메시지가 블록과 관련된 것인지 의미적으로 판단</strong>해야 하기 때문에 삭제 기준이 일관되기 어렵고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화의 흐름이 깨지는 문제가 있었습니다.
           </p>
           <p className="pl-12">
             <strong className="text-gray-900 -ml-12">C안 -</strong> 하나의 메시지 배열이 <strong className="text-gray-900">화면 표시</strong>와 <strong className="text-gray-900">모델 전송</strong> 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.
-            이를 위해 모델이 참조하는 대화 범위를 별도로 관리하고 전송 시에는 <strong className="text-gray-900">토글 시점을 기준</strong>으로 이후 메시지만 전달하도록 했습니다. 화면에는 전체 대화가 유지되므로 <strong className="text-gray-900">사용자 경험</strong>을 해치지 않으면서 <strong className="text-gray-900">맥락을 제어</strong>할 수 있어 이 방안을 채택하였습니다.
+            이를 위해 모델이 참조하는 대화 범위를 별도로 관리하고, 전송 시에는 <strong className="text-gray-900">그 범위에 해당하는</strong> 메시지만 전달하도록 했습니다. 화면에는 전체 대화가 유지되므로 <strong className="text-gray-900">사용자 경험</strong>을 해치지 않으면서 <strong className="text-gray-900">맥락을 제어</strong>할 수 있어 이 방안을 채택하였습니다.
           </p>
         </div>
-        <hr/>
+        <br/><br/>
         
 
         {/* 구현 과정 */}
@@ -133,45 +133,15 @@ function BlockmindPage() {
         <div className="prose max-w-none text-gray-600 space-y-4">
           <p className="font-bold text-gray-900">- 상태 분리 설계</p>
           <p>
-            C안의 구현을 위해선 제일 먼저 두 개의 역할을 가지고 있는 <strong className="text-gray-900">messages[]의 역할 분리</strong>가 우선적으로 필요했습니다.<br/>
-            원본 메시지 배열과 이 메시지 배열로부터 파생된 데이터 전송용 메시지 배열을 구분하는 기준이 필요했습니다.
-          </p>
-          <br/>
-          {/* <img
-            src="/BlockmindRedesign.png"
-            alt="상태 모델 재설계 흐름도"
-            className="w-full max-w-2xl mx-auto rounded"
-          /> */}
-          <p>
-            이 분리를 위해 블록의 visibility가 변경되는 시점을 감지하는 이벤트 발행이 필요했습니다.
-            Zustand store의 updateBlock 안에서 isVisible 값이 실제로 변경될 때만 lastResetAt을 기록하도록 조건을 추가했습니다.
-            라벨이나 내용 수정은 리셋을 발생시키지 않습니다.
-          </p>
-          <CodeBlock language="typescript" fileName="block-store.ts">
-{`// isVisible 값이 실제로 변경된 경우만 감지
-const isVisibilityChange =
-  updates.isVisible !== undefined && target?.isVisible !== updates.isVisible;
+            C안의 구현을 위해 먼저 두 개의 역할을 가지고 있는 messages[]을 <strong className="text-gray-900">어떤 기준</strong>으로 분리할 것인지 결정해야 했습니다.<br/>
+            처음엔 단순하게 모델 전송용 메시지를 '<strong className="text-gray-900">블록 토글 시각</strong> 기준으로 분리하면 되겠다' 라는 생각으로 진행하였습니다.<br/>
+            <br/>
+            따라서 블록 토글 시각(lastResetAt) 이후에 생성된 메시지만 필터링하여 전송하는 <strong className="text-gray-900">타임스탬프</strong> 방식으로 접근했습니다.<br/>
+            하지만 AI SDK 라이브러리 내부 함수인 useChat이 반환하는 메시지 객체에 항상 createdAt 필드가 있다는 보장을 할 수 없었고, 언제든 바뀔 수 있는 라이브러리 세부 구현에 의존하는 방식이라 <strong className="text-gray-900">불안정한 방식</strong>이라고 판단했습니다.<br/>
+            <br/>
+            제가 실제로 필요했던 것은 <strong className="text-gray-900">명확한 대화 범위 관리</strong>였기 때문에 시간이라는 경계값보다 <strong className="text-gray-900">인덱스</strong> 경계값을 사용하는 것이 안정적인 방식이라고 판단했습니다. 그래서 <strong className="text-gray-900">pivotIndex</strong>를 경계로 모델 전송용 메시지를 분리하여 구현을 진행했습니다.<br/>
+            
 
-return {
-  blocks: state.blocks.map((block) =>
-    block.id === id ? { ...block, ...updates } : block
-  ),
-  // visibility 변경 시에만 리셋 타임스탬프 기록
-  ...(isVisibilityChange ? { lastResetAt: Date.now() } : {}),
-};`}
-          </CodeBlock>
-          <p>
-            이 구조로 대화를 지우지 않고도 컨텍스트만 끊는 non-destructive reset이 가능해졌습니다.
-          </p>
-
-          <p className="font-bold text-gray-900">1. 타임스탬프 방식 시도 → 실패</p>
-          <p>
-            처음에는 블록 토글 시각(lastResetAt)을 기록하고, message.createdAt {'>'} lastResetAt인 메시지만 필터링하는 방식으로 접근했습니다.
-            하지만 useChat이 반환하는 메시지에는 createdAt 필드가 보장되지 않았습니다.
-            경계 판별을 라이브러리 내부 구현 세부사항에 의존하고 있었고, 이는 안정적인 상태 모델의 기준이 될 수 없었습니다.
-          </p>
-          <p>
-            그래서 시간 대신 <strong className="text-gray-900">배열 인덱스 기반의 pivot boundary</strong>로 전환했습니다.
           </p>
           <CodeBlock language="typescript" fileName="slice-messages-by-reset.ts">
 {`export function sliceMessagesByReset<T>(
@@ -182,10 +152,56 @@ return {
   return messages.slice(pivotIndex);
 }`}
           </CodeBlock>
+          <div className="flex justify-end -mt-1">
+            <a
+              href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/lib/slice-messages-by-reset.ts"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              fix: 블록 visible 상태에 따른 기억 로직 개선
+            </a>
+          </div>
+          <br/>
 
           <br/>
 
-          <p className="font-bold text-gray-900">2. pivotIndex 저장 위치: ref vs 전역 상태</p>
+          <p className="font-bold text-gray-900">1. 기록 시점 결정</p>
+          <p>
+            블록 토글을 누르면 lastResetAt = Date.now()가 찍히지만 이때 바로 pivotIndex = messages.length를 넣으면,
+            React의 상태 업데이트는 비동기적으로 배치되기 때문에 updateBlock이 호출된 시점에서 messages.length를 읽는다면 이전 렌더의 값일 수 있어 올바른 경계가 보장되지 않았습니다.
+            그래서 블록 토글이 반영된 뒤의 시점에서 이 값을 읽도록 했습니다.
+          </p>
+          <p>
+            lastResetAt이 바뀌면 React가 리렌더하고 그 리렌더가 커밋된 후 useEffect가 실행됩니다.<br/>
+            따라서 이 시점에서 messages.length를 pivotIndex로 기록했습니다.
+            
+          </p>
+          <CodeBlock language="typescript" fileName="chat-interface.tsx">
+{`const lastResetAt = useBlockStore((state) => state.lastResetAt);
+
+useEffect(() => {
+  if (lastResetAt === null) return;
+  // 토글 시점의 대화 길이를 경계로 고정
+  useBlockStore.getState().setPivotIndex(messages.length);
+}, [lastResetAt]); // messages는 의도적으로 deps 제외`}
+          </CodeBlock>
+          <div className="flex justify-end -mt-1">
+            <a
+              href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/components/chat/chat-interface.tsx#L46"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              fix: 블록 visible 상태에 따른 기억 로직 개선
+            </a>
+          </div>
+
+          <br/>
+
+          <p className="font-bold text-gray-900">2. 저장 위치 결정</p>
           <p>
             처음에는 ref에 저장해 컴포넌트 내부에서 처리하려 했습니다.
             하지만 pivotIndex는 단순한 렌더 캐시가 아니었습니다. 이 값은:
@@ -205,27 +221,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
 
           <br/>
 
-          <p className="font-bold text-gray-900">3. 경계 캡처 타이밍: 렌더 중이 아닌 커밋 이후</p>
-          <p>
-            블록 토글 직후 바로 messages.length를 읽는다고 해서 올바른 경계가 보장되지 않았습니다.
-            리셋 경계는 토글이 반영된 뒤의 현재 대화 길이를 기준으로 확정되어야 했습니다.
-          </p>
-          <p>
-            그래서 lastResetAt을 이벤트 트리거로, useEffect에서 렌더 완료 후 messages.length를 pivotIndex로 기록했습니다.
-            messages를 deps에 넣지 않은 것은 의도적입니다. 목표는 매번 최신 길이를 반영하는 것이 아니라, <strong className="text-gray-900">리셋이 발생한 순간의 경계를 고정</strong>하는 것이었기 때문입니다.
-          </p>
-          <CodeBlock language="typescript" fileName="chat-interface.tsx">
-{`const lastResetAt = useBlockStore((state) => state.lastResetAt);
-
-useEffect(() => {
-  if (lastResetAt === null) return;
-  useBlockStore.getState().setPivotIndex(messages.length);
-}, [lastResetAt]); // messages는 의도적으로 deps 제외`}
-          </CodeBlock>
-
-          <br/>
-
-          <p className="font-bold text-gray-900">4. 요청 시점의 stale closure 방지</p>
+          <p className="font-bold text-gray-900">3. 읽기 시점 결정</p>
           <p>
             transport를 한 번 생성하고 그 안에서 클로저로 pivotIndex나 blocks를 캡처하면, 이후 상태가 바뀌어도 오래된 값이 전송될 수 있습니다.
             그래서 body() 안에서 useBlockStore.getState()로 <strong className="text-gray-900">요청 시점의 최신 상태</strong>를 읽도록 했습니다.
@@ -235,18 +231,19 @@ useEffect(() => {
   () =>
     new DefaultChatTransport({
       api: '/api/chat',
+      // 전송 시점마다 실행 — getState()로 최신 상태 읽기
       body: () => {
         const { blocks, pivotIndex } = useBlockStore.getState();
         return { systemPrompt: buildSystemPrompt(blocks), pivotIndex };
       },
     }),
-  []
+  [] // 마운트 시 한 번만 생성, body()는 매 전송마다 호출
 );`}
           </CodeBlock>
 
           <br/>
 
-          <p className="font-bold text-gray-900">5. API 서버 적용</p>
+          <p className="font-bold text-gray-900">4. 서버 적용</p>
           <p>
             클라이언트에서 전달된 pivotIndex를 기반으로 서버에서 메시지를 슬라이싱합니다.
           </p>
