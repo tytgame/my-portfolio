@@ -115,13 +115,13 @@ function BlockmindPage() {
         </ul>
         <div className="prose max-w-none text-gray-600 space-y-2">
           <p className="pl-12">
-            <strong className="text-gray-900 -ml-12">A안 -</strong> 블록 토글은 결정론적으로 반영되어야 하는 사용자 조작이지만 프롬프트 지시에 대한 <strong className="text-gray-900">LLM의 응답은 비결정적</strong>이므로 안정성을 보장하기 어렵다고 판단했습니다.
+            <strong className="text-gray-900 -ml-11">A안 -</strong> 블록 토글은 결정론적으로 반영되어야 하는 사용자 조작이지만 프롬프트 지시에 대한 <strong className="text-gray-900">LLM의 응답은 비결정적</strong>이므로 안정성을 보장하기 어렵다고 판단했습니다.
           </p>
           <p className="pl-12">
-            <strong className="text-gray-900 -ml-12">B안 -</strong> <strong className="text-gray-900">어떤 메시지가 블록과 관련된 것인지 의미적으로 판단</strong>해야 하기 때문에 삭제 기준이 일관되기 어렵고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화의 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900 -ml-11">B안 -</strong> <strong className="text-gray-900">어떤 메시지가 블록과 관련된 것인지 의미적으로 판단</strong>해야 하기 때문에 삭제 기준이 일관되기 어렵고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화의 흐름이 깨지는 문제가 있었습니다.
           </p>
           <p className="pl-12">
-            <strong className="text-gray-900 -ml-12">C안 -</strong> 하나의 메시지 배열이 <strong className="text-gray-900">화면 표시</strong>와 <strong className="text-gray-900">모델 전송</strong> 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.
+            <strong className="text-gray-900 -ml-11">C안 -</strong> 하나의 메시지 배열이 <strong className="text-gray-900">화면 표시</strong>와 <strong className="text-gray-900">모델 전송</strong> 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.
             이를 위해 모델이 참조하는 대화 범위를 별도로 관리하고, 전송 시에는 <strong className="text-gray-900">그 범위에 해당하는</strong> 메시지만 전달하도록 했습니다. 화면에는 전체 대화가 유지되므로 <strong className="text-gray-900">사용자 경험</strong>을 해치지 않으면서 <strong className="text-gray-900">맥락을 제어</strong>할 수 있어 이 방안을 채택하였습니다.
           </p>
         </div>
@@ -169,14 +169,12 @@ function BlockmindPage() {
 
           <p className="font-bold text-gray-900">1. 기록 시점 결정</p>
           <p>
-            블록 토글을 누르면 lastResetAt = Date.now()가 찍히지만 이때 바로 pivotIndex = messages.length를 넣으면,
-            React의 상태 업데이트는 비동기적으로 배치되기 때문에 updateBlock이 호출된 시점에서 messages.length를 읽는다면 이전 렌더의 값일 수 있어 올바른 경계가 보장되지 않았습니다.
-            그래서 블록 토글이 반영된 뒤의 시점에서 이 값을 읽도록 했습니다.
+            블록 토글 시 lastResetAt = Date.now()는 즉시 기록할 수 있었지만 이 시점에 pivotIndex = messages.length 까지 넣을 순 없었습니다.
+            왜냐하면 React의 상태 업데이트는 배치 처리되기 때문에 updateBlock이 호출된 직후 messages.length의 값이 이전 렌더의 값일 수 있어 <strong className="text-gray-900">pivotIndex의 경계가 정확하지 않을 수 있었습니다. </strong>
           </p>
           <p>
-            lastResetAt이 바뀌면 React가 리렌더하고 그 리렌더가 커밋된 후 useEffect가 실행됩니다.<br/>
-            따라서 이 시점에서 messages.length를 pivotIndex로 기록했습니다.
-            
+            그래서 블록 토글이 반영된 뒤의 시점에서 messages.length 값을 읽도록 했습니다.<br/>
+            lastResetAt이 변경되어 React가 리렌더하고, 그 리렌더가 커밋된 후 useEffect에서 messages.length를 읽어 pivotIndex로 기록했습니다.<br/>
           </p>
           <CodeBlock language="typescript" fileName="chat-interface.tsx">
 {`const lastResetAt = useBlockStore((state) => state.lastResetAt);
@@ -203,28 +201,47 @@ useEffect(() => {
 
           <p className="font-bold text-gray-900">2. 저장 위치 결정</p>
           <p>
-            처음에는 ref에 저장해 컴포넌트 내부에서 처리하려 했습니다.
-            하지만 pivotIndex는 단순한 렌더 캐시가 아니었습니다. 이 값은:
+            기록한 pivotIndex 값을 어디에 저장해야 할지 결정해야 했습니다.
           </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>블록 토글 시점에 결정되고</li>
-            <li>이후 네트워크 요청 시 사용되며</li>
-            <li>컴포넌트 렌더링과 분리된 시점에서도 일관되게 읽혀야 했습니다</li>
-          </ul>
+
+            <p>
+            값이 바뀌어도 렌더링을 일으키지 않는 ref에 저장해 컴포넌트 내부에서 처리하려 했지만 pivotIndex는 단순한 임시값이 아니라 <strong className="text-gray-900">블록 토글 시점</strong>부터 <strong className="text-gray-900">메시지 전송 시점</strong>까지 값이 일관되어야 하는 <strong className="text-gray-900">전역 수준 상태</strong>였습니다.
+
+            ref로 처리한다면 각각 다른 컴포넌트에 값 전달을 위해 props-driling이 필요해져 구조가 복잡해질 것이라 예상했습니다.
+          </p>
+
           <p>
-            즉 <strong className="text-gray-900">요청 경계를 표현하는 앱 상태</strong>였기 때문에, 렌더 단계에서 불안정하게 다뤄질 수 있는 ref보다 Zustand store가 설계적으로 적절했습니다.
+            따라서 앱 전역에서 pivotIndex 값을 일관된 상태로 저장하고 읽을 수 있는 Zustand를 사용하였습니다. 또한 이후 메시지 전송 body에서 getState()로 최신 상태를 읽을 수 있기 때문에 Zustand store가 설계적으로 적절했습니다.
           </p>
           <CodeBlock language="typescript" fileName="block-store.ts">
 {`pivotIndex: null,
 setPivotIndex: (index) => set({ pivotIndex: index }),`}
           </CodeBlock>
+          <div className="flex justify-end -mt-1">
+            <a
+              href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/store/block-store.ts#L16"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              fix: 블록 visible 상태에 따른 기억 로직 개선
+            </a>
+          </div>
 
           <br/>
 
           <p className="font-bold text-gray-900">3. 읽기 시점 결정</p>
           <p>
-            transport를 한 번 생성하고 그 안에서 클로저로 pivotIndex나 blocks를 캡처하면, 이후 상태가 바뀌어도 오래된 값이 전송될 수 있습니다.
-            그래서 body() 안에서 useBlockStore.getState()로 <strong className="text-gray-900">요청 시점의 최신 상태</strong>를 읽도록 했습니다.
+            또한 기록한 값을 <strong className="text-gray-900">언제 그리고 어떤 방식으로 읽을지</strong>도 중요했습니다.
+            이 값은 메시지 전송 시점에 요청 body에 포함되어야 했기 때문에 항상 <strong className="text-gray-900">최신 값</strong>을 읽어야 했습니다.<br/><br/>
+            문제는 transport 객체가 useMemo(fn, [])로 한 번만 생성된다는 점이었습니다. useMemo는 컴포넌트가 처음 마운트될 때 fn을 한 번 실행한 뒤 그 결과를 재사용하므로 body() 안에서 일반 상태나 변수를 직접 참조하면 <strong className="text-gray-900">마운트 시점의 값이 클로저에 고정</strong>될 수 있었습니다.
+            이렇게 되면 이후 상태가 바뀌더라도 이전 값을 읽게 되는데 이것이 React의 <strong className="text-gray-900">stale closure 문제</strong>입니다.
+            </p>
+            <p>
+            그래서 body() 내부에서는 값을 미리 캡처하지 않고 메시지를 보내는 순간 useBlockStore.getState()를 호출해 Zustand store의 <strong className="text-gray-900">최신 상태를 읽도록</strong> 했습니다.
+            이렇게 하면 transport 객체는 한 번만 생성하더라도 body()가 실행될 때마다 그 시점의 blocks와 pivotIndex를 읽어 요청에 반영할 수 있고 <strong className="text-gray-900">stale closure 문제를 예방</strong>할 수 있었습니다.
+
           </p>
           <CodeBlock language="typescript" fileName="chat-interface.tsx">
 {`const transport = useMemo(
@@ -240,6 +257,17 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
   [] // 마운트 시 한 번만 생성, body()는 매 전송마다 호출
 );`}
           </CodeBlock>
+          <div className="flex justify-end -mt-1">
+            <a
+              href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/components/chat/chat-interface.tsx#L60"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              fix: 블록 visible 상태에 따른 기억 로직 개선
+            </a>
+          </div>
 
           <br/>
 
