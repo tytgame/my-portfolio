@@ -62,7 +62,7 @@ function BlockmindPage() {
       {/* 1번째 문제 */}
       <section id="bm-1" className="space-y-4">
         <h3 className="text-3xl font-bold border-b border-border-light pb-2">
-          문제 상황 : 블록 비활성화가 AI 응답에 반영되지 않는 문제
+          문제 상황 : 블록 비활성화가 AI 답변에 반영되지 않는 문제
         </h3>
 
         <div className="prose max-w-none text-gray-600">
@@ -75,8 +75,8 @@ function BlockmindPage() {
             <ul className="list-disc pl-5 space-y-1">
               <li>블록 내용: [홍길동 · 강남 · 30세 · 백엔드 엔지니어]</li>
               <li>블록 비활성화 후 질문: "내 이름이 뭐야?"</li>
-              <li>기대: "알 수 없습니다"</li>
-              <li>실제: "홍길동님입니다"</li>
+              <li>기대한 답변: "알 수 없습니다"</li>
+              <li><strong className="text-gray-900">실제 답변: "홍길동님입니다"</strong></li>
             </ul>
           </div>
         </div>
@@ -91,10 +91,13 @@ function BlockmindPage() {
           className="w-full max-w-2xl mx-auto rounded"
         />
         <div className="prose max-w-none text-gray-600">
-          <p>처음엔 LLM이 세션별로 정보를 기억하는 내부의 고유한 특성을 이유로 생각했지만 사실은 이와 달랐습니다.<br/>
-            블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다. 
-            즉, LLM은 systemPrompt와 messages[]를 모두 읽기 때문에, 메시지 배열에 남아 있는 과거 정보가 그대로 참조되고 있었던 것이 원인이었습니다.<br/>
-            또한 이 messages 배열은 화면 렌더링에도 동시에 사용되고 있어, 전송 데이터만 수정하면 채팅 UI도 함께 변하는 구조적 문제가 있었습니다.
+          <p>처음엔 <strong className="text-gray-900">LLM의 컨텍스트 윈도우</strong>가 영향을 주는 것으로 생각했지만 사실은 이와 달랐습니다.
+          <br/><br/>
+            블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다.
+            <br/>
+            즉, LLM은 systemPrompt와 messages[]를 모두 읽기 때문에 <strong className="text-gray-900">메시지 배열에 남아 있는 과거 정보가 그대로 참조</strong>되고 있었던 것이 원인이었습니다.
+            <br/><br/>
+            또한 이 messages 배열은 화면 렌더링에도 동시에 사용되고 있어, 전송 데이터를 수정하면 채팅 UI도 함께 변하는 <strong className="text-gray-900">구조적 문제</strong>가 있었습니다.
           </p>
         </div>
 
@@ -108,18 +111,18 @@ function BlockmindPage() {
         <ul className="text-gray-600 space-y-1">
           <li>A. 시스템 프롬프트에 직접 "Forget" 지시</li>
           <li>B. 메시지 배열에서 해당 블록 관련 메시지 제거</li>
-          <li className="font-bold text-gray-900">C. 메시지 배열은 유지한 채 토글 시점 기준으로 모델에 전송할 메시지를 슬라이싱하여 전송 (채택)</li>
+          <li className="font-bold text-gray-900">C. 메시지 배열은 유지한 채 모델에 보내는 메시지만 분리하여 전송</li>
         </ul>
         <div className="prose max-w-none text-gray-600 space-y-2">
-          <p>
-            <strong className="text-gray-900">A안 -</strong> 블록 토글은 결정론적으로 반영되어야 하는 사용자 조작이지만 프롬프트 지시에 대한 LLM의 응답은 비결정적이므로 안정성을 보장하기 어렵다고 판단했습니다.
+          <p className="pl-12">
+            <strong className="text-gray-900 -ml-12">A안 -</strong> 블록 토글은 결정론적으로 반영되어야 하는 사용자 조작이지만 프롬프트 지시에 대한 <strong className="text-gray-900">LLM의 응답은 비결정적</strong>이므로 안정성을 보장하기 어렵다고 판단했습니다.
           </p>
-          <p>
-            <strong className="text-gray-900">B안 -</strong> 블록 관련 메시지들을 판단하는 기준이 모호하였고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화 흐름이 깨지는 문제가 있었습니다.
+          <p className="pl-12">
+            <strong className="text-gray-900 -ml-12">B안 -</strong> <strong className="text-gray-900">어떤 메시지가 블록과 관련된 것인지 의미적으로 판단</strong>해야 하기 때문에 삭제 기준이 일관되기 어렵고, 또한 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화의 흐름이 깨지는 문제가 있었습니다.
           </p>
-          <p>
-            <strong className="text-gray-900">C안 -</strong> 하나의 메시지 배열이 화면 표시와 모델 전송 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.<br/>
-            배열 자체는 그대로 유지하되 토글 시점을 pivotIndex로 기록하고 전송 시점에 그 이후의 메시지만 잘라서 모델에 전달합니다. 화면에는 전체 대화가 유지되므로 사용자 경험을 해치지 않으면서 맥락을 제어할 수 있어 이 방안을 채택하였습니다.
+          <p className="pl-12">
+            <strong className="text-gray-900 -ml-12">C안 -</strong> 하나의 메시지 배열이 <strong className="text-gray-900">화면 표시</strong>와 <strong className="text-gray-900">모델 전송</strong> 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.
+            이를 위해 모델이 참조하는 대화 범위를 별도로 관리하고 전송 시에는 <strong className="text-gray-900">토글 시점을 기준</strong>으로 이후 메시지만 전달하도록 했습니다. 화면에는 전체 대화가 유지되므로 <strong className="text-gray-900">사용자 경험</strong>을 해치지 않으면서 <strong className="text-gray-900">맥락을 제어</strong>할 수 있어 이 방안을 채택하였습니다.
           </p>
         </div>
         <hr/>
@@ -128,20 +131,17 @@ function BlockmindPage() {
         {/* 구현 과정 */}
         <h4 className="text-xl font-bold text-gray-900">구현 과정</h4>
         <div className="prose max-w-none text-gray-600 space-y-4">
-          <p className="font-bold text-gray-900">상태 모델 재설계</p>
+          <p className="font-bold text-gray-900">- 상태 분리 설계</p>
           <p>
-            하나의 메시지 배열을 화면과 모델 입력에 같이 쓰지 않고, 역할을 분리했습니다.
+            C안의 구현을 위해선 제일 먼저 두 개의 역할을 가지고 있는 <strong className="text-gray-900">messages[]의 역할 분리</strong>가 우선적으로 필요했습니다.<br/>
+            원본 메시지 배열과 이 메시지 배열로부터 파생된 데이터 전송용 메시지 배열을 구분하는 기준이 필요했습니다.
           </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><strong className="text-gray-900">display history</strong>: 전체 채팅 내역 (UI 표시용, 항상 유지)</li>
-            <li><strong className="text-gray-900">inference history</strong>: pivotIndex 이후 메시지만 (모델 전송용)</li>
-            <li><strong className="text-gray-900">active context</strong>: isVisible === true인 블록들 (시스템 프롬프트)</li>
-          </ul>
-          <img
+          <br/>
+          {/* <img
             src="/BlockmindRedesign.png"
             alt="상태 모델 재설계 흐름도"
             className="w-full max-w-2xl mx-auto rounded"
-          />
+          /> */}
           <p>
             이 분리를 위해 블록의 visibility가 변경되는 시점을 감지하는 이벤트 발행이 필요했습니다.
             Zustand store의 updateBlock 안에서 isVisible 값이 실제로 변경될 때만 lastResetAt을 기록하도록 조건을 추가했습니다.
