@@ -236,7 +236,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
             또한 기록한 값을 <strong className="text-gray-900">언제 그리고 어떤 방식으로 읽을지</strong>도 중요했습니다.
             이 값은 메시지 전송 시점에 요청 body에 포함되어야 했기 때문에 항상 <strong className="text-gray-900">최신 값</strong>을 읽어야 했습니다.<br/><br/>
             문제는 transport 객체가 useMemo(fn, [])로 한 번만 생성된다는 점이었습니다. useMemo는 컴포넌트가 처음 마운트될 때 fn을 한 번 실행한 뒤 그 결과를 재사용하므로 body() 안에서 일반 상태나 변수를 직접 참조하면 <strong className="text-gray-900">마운트 시점의 값이 클로저에 고정</strong>될 수 있었습니다.
-            이렇게 되면 이후 상태가 바뀌더라도 이전 값을 읽게 되는데 이것이 React의 <strong className="text-gray-900">stale closure 문제</strong>입니다.
+            이렇게 되면 이후 상태가 바뀌더라도 이전 값을 읽게 되는 <strong className="text-gray-900">stale closure 문제</strong>가 발생할 수 있었습니다.
             </p>
             <p>
             그래서 body() 내부에서는 값을 미리 캡처하지 않고 메시지를 보내는 순간 useBlockStore.getState()를 호출해 Zustand store의 <strong className="text-gray-900">최신 상태를 읽도록</strong> 했습니다.
@@ -357,19 +357,126 @@ const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
         {/* 원인 */}
         <h4 className="text-xl font-bold text-gray-900">원인</h4>
         <div className="prose max-w-none text-gray-600">
+          <p>
+            <strong className="text-gray-900">layout.tsx 전체가 'use client'로 선언된 100% CSR 구조</strong>가 원인이었습니다.
+          </p>
+          <p>
+            Zustand store의 초기값은 <code>blocks: []</code>이고, 실제 데이터는 컴포넌트 마운트 후 useEffect에서 <code>/api/blocks</code>를 fetch하여 주입하고 있었습니다.
+            fetch 응답이 오기 전까지 store는 빈 배열 상태이므로, <strong className="text-gray-900">"데이터를 불러오는 중"과 "진짜 데이터가 없음"이 동일한 빈 화면으로 표시</strong>되고 있었습니다.
+          </p>
+          <p>
+            CSR 구조에서는 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에, <strong className="text-gray-900">첫 프레임에 데이터가 존재할 수 없다</strong>는 근본적인 한계가 있었습니다.
+          </p>
+          <CodeBlock language="typescript" fileName="layout.tsx (수정 전)">
+{`'use client';
+
+export default function ChatLayout({ children }) {
+  useBlocksInit();   // useEffect로 /api/blocks fetch
+  // → 응답 전까지 blocks: [] → "블록이 없습니다" 렌더
+}`}
+          </CodeBlock>
         </div>
 
         <br/>
 
         {/* 해결 과정 */}
         <h4 className="text-xl font-bold text-gray-900">해결 과정</h4>
-        <div className="prose max-w-none text-gray-600">
+        <div className="prose max-w-none text-gray-600 space-y-4">
+          <p>
+            빈 화면 flash를 제거하려면 <strong className="text-gray-900">데이터 주입 시점을 서버로 올려야</strong> 했습니다. layout.tsx를 async Server Component로 전환하여, 서버에서 블록 데이터를 조회한 뒤 HTML에 포함시켜 전달하는 방식으로 변경했습니다.
+          </p>
+
+          <p className="font-bold text-gray-900">1. layout.tsx → async Server Component 전환</p>
+          <p>
+            서버에서 <code>auth()</code>로 세션을 확인하고 <code>getUserBlocks()</code>로 블록을 조회한 뒤, initialBlocks를 props로 클라이언트 컴포넌트에 전달합니다.
+          </p>
+          <CodeBlock language="typescript" fileName="layout.tsx (수정 후)">
+{`export default async function ChatLayout({ children }) {
+  let initialBlocks: Block[] = [];
+
+  try {
+    const session = await auth();
+    if (session?.user?.id) {
+      initialBlocks = await getUserBlocks(session.user.id);
+    }
+  } catch {
+    // 서버 데이터 실패 시 빈 배열 → 클라이언트 fallback이 처리
+  }
+
+  return (
+    <ClientChatLayout initialBlocks={initialBlocks}>
+      {children}
+    </ClientChatLayout>
+  );
+}`}
+          </CodeBlock>
+
+          <p className="font-bold text-gray-900">2. Zustand에 동기 주입</p>
+          <p>
+            서버에서 받은 initialBlocks를 클라이언트 컴포넌트의 <strong className="text-gray-900">렌더 단계에서 동기적으로</strong> Zustand store에 주입했습니다.
+            useEffect를 사용하면 렌더가 끝난 후 실행되어 첫 프레임에서 여전히 빈 배열이 렌더되므로, <strong className="text-gray-900">useRef 가드와 함께 렌더 단계에서 직접 호출</strong>하는 방식을 선택했습니다.
+          </p>
+          <CodeBlock language="typescript" fileName="client-chat-layout.tsx">
+{`'use client';
+
+export function ClientChatLayout({ children, initialBlocks }) {
+  // 렌더 단계에서 동기적으로 store에 주입 (첫 프레임부터 데이터 존재)
+  const initializedRef = React.useRef(false);
+  if (!initializedRef.current && initialBlocks.length > 0) {
+    useBlockStore.getState().setBlocks(initialBlocks);
+    initializedRef.current = true;
+  }
+
+  // fallback: 서버 데이터가 비어있으면 클라이언트에서 재시도
+  useBlocksInit(initialBlocks.length > 0);
+}`}
+          </CodeBlock>
+
+          <p className="font-bold text-gray-900">3. 채팅 영역은 SSR 대상에서 제외</p>
+          <p>
+            블록 패널은 SSR로 전환했지만, 채팅 영역은 CSR + 스피너 방식을 유지했습니다.
+            메시지가 수백 개인 세션을 SSR하면 서버 조회가 완료될 때까지 HTML 자체가 전송되지 않아 스피너보다 나쁜 UX가 되고,
+            AI SDK의 <code>useChat</code> 훅이 메시지 배열을 자체 관리하며 스트리밍을 처리하기 때문에 서버 주입 데이터와의 동기화 복잡도가 높았습니다.
+          </p>
         </div>
 
         <br/>
 
         {/* 결과 */}
         <h4 className="text-xl font-bold text-gray-900">결과</h4>
+        <div className="prose max-w-none text-gray-600 space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-gray-600">
+              <thead>
+                <tr className="border-b border-border-light text-left">
+                  <th className="py-2 pr-4 font-bold text-gray-900"></th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">수정 전 (CSR)</th>
+                  <th className="py-2 font-bold text-gray-900">수정 후 (SSR + CSR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">블록 패널</td>
+                  <td className="py-2 pr-4">"블록이 없습니다" flash</td>
+                  <td className="py-2">즉시 표시 (flash 없음)</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">채팅 영역</td>
+                  <td className="py-2 pr-4">빈 채팅 화면 → 복원</td>
+                  <td className="py-2">스피너 → 복원</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">네트워크 요청</td>
+                  <td className="py-2 pr-4">HTML + /api/blocks (2회)</td>
+                  <td className="py-2">HTML에 블록 포함 (1회)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            블록 패널의 빈 화면 flash가 제거되어 첫 프레임부터 데이터가 표시되고, 블록 조회를 위한 별도 API 요청이 사라져 네트워크 요청 수도 줄었습니다.
+          </p>
+        </div>
         <div className="grid grid-cols-1 gap-6">
           <div>
             <p className="font-bold text-gray-900 mb-2 text-center">수정 전</p>
