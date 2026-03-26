@@ -131,7 +131,7 @@ function BlockmindPage() {
         {/* 구현 과정 */}
         <h4 className="text-xl font-bold text-gray-900">구현 과정</h4>
         <div className="prose max-w-none text-gray-600 space-y-4">
-          <p className="font-bold text-gray-900">- 상태 분리 설계</p>
+          <p className="font-bold text-gray-900">상태 분리 설계</p>
           <p>
             C안의 구현을 위해 먼저 두 개의 역할을 가지고 있는 messages[]을 <strong className="text-gray-900">어떤 기준</strong>으로 분리할 것인지 결정해야 했습니다.<br/>
             처음엔 단순하게 모델 전송용 메시지를 '<strong className="text-gray-900">블록 토글 시각</strong> 기준으로 분리하면 되겠다' 라는 생각으로 진행하였습니다.<br/>
@@ -152,7 +152,7 @@ function BlockmindPage() {
   return messages.slice(pivotIndex);
 }`}
           </CodeBlock>
-          <div className="flex justify-end -mt-1">
+          <div className="flex justify-end mt-1">
             <a
               href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/lib/slice-messages-by-reset.ts"
               target="_blank"
@@ -185,7 +185,7 @@ useEffect(() => {
   useBlockStore.getState().setPivotIndex(messages.length);
 }, [lastResetAt]); // messages는 의도적으로 deps 제외`}
           </CodeBlock>
-          <div className="flex justify-end -mt-1">
+          <div className="flex justify-end mt-1">
             <a
               href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/components/chat/chat-interface.tsx#L46"
               target="_blank"
@@ -217,7 +217,7 @@ useEffect(() => {
 {`pivotIndex: null,
 setPivotIndex: (index) => set({ pivotIndex: index }),`}
           </CodeBlock>
-          <div className="flex justify-end -mt-1">
+          <div className="flex justify-end mt-1">
             <a
               href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/store/block-store.ts#L16"
               target="_blank"
@@ -257,7 +257,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
   [] // 마운트 시 한 번만 생성, body()는 매 전송마다 호출
 );`}
           </CodeBlock>
-          <div className="flex justify-end -mt-1">
+          <div className="flex justify-end mt-1">
             <a
               href="https://github.com/tytgame/BlockMind/blob/a34d1904168b409944c3f8ab593722587ee36fd1/src/components/chat/chat-interface.tsx#L60"
               target="_blank"
@@ -344,11 +344,14 @@ const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
       {/* 2번째 문제 */}
       <section id="bm-2" className="space-y-4">
         <h3 className="text-3xl font-bold border-b border-border-light pb-2">
-          문제 상황 : 페이지 리로드 시 빈 화면이 순간 노출되는 문제
+          문제 상황 : 채팅 페이지 리로드 시 빈 화면이 순간 노출되는 문제
         </h3>
         <div className="prose max-w-none text-gray-600">
           <p>
-          기존 세션이 있는 상태에서 페이지를 리로드하면 채팅 목록, 채팅 화면, 블록 패널이 모두 빈 상태로 먼저 렌더링된 뒤 데이터가 뒤늦게 표시되었습니다.
+          채팅 페이지를 리로드하면 우측 블록 패널에 '블록이 없습니다'가 100 ~ 500ms 동안 나타났다가 실제 블록 목록이 나타나는 현상이 있었습니다.
+          메인 채팅 영역도 마찬가지로 채팅 내용이 있는 상태에서 새 채팅 페이지(/chat)이 먼저 렌더링 된 뒤 이전 채팅 내용이 복원되었습니다.
+          <br/><br/>
+          이런 현상은 사용자 경험을 크게 저해하는 일이기에 무엇이 원인인지 정의하고 <strong className="text-gray-900">블록 패널</strong>과 <strong className="text-gray-900">채팅 영역</strong> 각 상황에 알맞게 해결해야 했습니다.
           </p>
         </div>
 
@@ -357,17 +360,13 @@ const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
         {/* 원인 */}
         <h4 className="text-xl font-bold text-gray-900">원인</h4>
         <div className="prose max-w-none text-gray-600">
+        <p className="font-bold text-gray-900">블록 패널</p>
+        <br/>
           <p>
-            <strong className="text-gray-900">layout.tsx 전체가 'use client'로 선언된 100% CSR 구조</strong>가 원인이었습니다.
-          </p>
-          <p>
-            Zustand store의 초기값은 <code>blocks: []</code>이고, 실제 데이터는 컴포넌트 마운트 후 useEffect에서 <code>/api/blocks</code>를 fetch하여 주입하고 있었습니다.
-            fetch 응답이 오기 전까지 store는 빈 배열 상태이므로, <strong className="text-gray-900">"데이터를 불러오는 중"과 "진짜 데이터가 없음"이 동일한 빈 화면으로 표시</strong>되고 있었습니다.
-          </p>
-          <p>
-            CSR 구조에서는 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에, <strong className="text-gray-900">첫 프레임에 데이터가 존재할 수 없다</strong>는 근본적인 한계가 있었습니다.
-          </p>
-          <CodeBlock language="typescript" fileName="layout.tsx (수정 전)">
+            왜 '블록이 없습니다'가 잠깐 보이는지 원인을 파악하기 위해 layout.tsx 코드의 동작 순서를 이해해야 했습니다.
+            </p>
+            <br/>
+            <CodeBlock language="typescript" fileName="layout.tsx (수정 전)">
 {`'use client';
 
 export default function ChatLayout({ children }) {
@@ -375,6 +374,38 @@ export default function ChatLayout({ children }) {
   // → 응답 전까지 blocks: [] → "블록이 없습니다" 렌더
 }`}
           </CodeBlock>
+          <div className="flex justify-end mt-1">
+            <a
+              href="https://github.com/tytgame/BlockMind/commit/e1a22bacfc528e26c16a4e7e9646c98bb5e9667f#diff-be7c518c2482ade30385949b6eb81b2ed80a8d8a1de81333c662a09f5d64865c"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              refactor: 채팅 레이아웃 CSR → CSR + SSR 전환
+            </a>
+          </div>
+          <br/>
+            <p>
+            layout 파일 최상단에 'use client' 가 사용되어 이 컴포넌트는 브라우저에서 JavaScript가 실행된 후에야 동작합니다. 따라서 렌더링 흐름은
+          </p>
+          
+          <img
+            src="/BlockmindCSRrender.png"
+            alt="CSR 렌더링 흐름"
+            className="max-w-[12rem] mx-auto rounded"
+          />
+          <p>
+            이런 흐름으로 진행되어 4번과 7번 사이에 블록 컴포넌트에 초기값이 비어있었기 때문에 '블록이 없습니다'가 나타났습니다. 
+
+          </p>
+
+          <br/>
+
+          <p>
+            Zustand store의 초기값은 blocks: []이고 이것이 <strong className="text-gray-900">실제 데이터가 없는건지, fetch 중이라 비어있는 건지</strong> 구분할 방법이 없었습니다.
+            이 것을 CSR으로 해결하려면 isLoading 같은 상태를 추가해서 스피너를 보여줄 순 있었지만 CSR 구조에서는 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에 빈 배열이 먼저 렌더되는 <strong className="text-gray-900">구조적인 한계</strong>가 있었습니다.
+          </p>
         </div>
 
         <br/>

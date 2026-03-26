@@ -9,7 +9,7 @@ const TOC = [
     project: 'BlockMind',
     items: [
       { id: 'bm-1', label: '블록 비활성화가 AI 답변에 반영되지 않는 문제' },
-      { id: 'bm-2', label: '페이지 리로드 시 빈 화면 노출' },
+      { id: 'bm-2', label: '채팅 페이지 리로드 시 빈 화면 노출' },
       { id: 'bm-3', label: 'LLM API 호출 2회→1회 통합' },
     ],
   },
