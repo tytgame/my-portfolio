@@ -81,7 +81,7 @@ function BlockmindPage() {
           </div>
         </div>
 
-        <br/>
+        <br/><br/>
 
         {/* 원인 */}
         <h4 className="text-xl font-bold text-gray-900">원인</h4>
@@ -271,14 +271,11 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
 
           <br/>
 
-          <p className="font-bold text-gray-900">4. 서버 적용</p>
+          <p className="font-bold text-gray-900">4. 서버에서 메시지 정제</p>
           <p>
-            클라이언트에서 전달된 pivotIndex를 기반으로 서버에서 메시지를 슬라이싱합니다.
+            클라이언트가 보낸 pivotIndex를 바탕으로 서버 API route에서 <strong className="text-gray-900">메시지를 정제하여 LLM에 전달</strong>했습니다.
           </p>
-          <CodeBlock language="typescript" fileName="app/api/chat/route.ts">
-{`const { messages, systemPrompt, pivotIndex } = await req.json();
-const slicedMessages = sliceMessagesByReset(messages, pivotIndex);`}
-          </CodeBlock>
+          
         </div>
 
         <br/>
@@ -393,10 +390,10 @@ export default function ChatLayout({ children }) {
           <img
             src="/BlockmindCSRrender.png"
             alt="CSR 렌더링 흐름"
-            className="max-w-[12rem] mx-auto rounded"
+            className="max-w-[17rem] mx-auto rounded"
           />
           <p>
-            이런 흐름으로 진행되어 4번과 7번 사이에 블록 컴포넌트에 초기값이 비어있었기 때문에 '블록이 없습니다'가 나타났습니다. 
+            으로 진행되어 4번과 7번 사이에 블록 컴포넌트에 초기값이 비어있었기 때문에 '블록이 없습니다'가 나타났습니다. 
 
           </p>
 
@@ -421,26 +418,6 @@ export default function ChatLayout({ children }) {
           <p>
             서버에서 <code>auth()</code>로 세션을 확인하고 <code>getUserBlocks()</code>로 블록을 조회한 뒤, initialBlocks를 props로 클라이언트 컴포넌트에 전달합니다.
           </p>
-          <CodeBlock language="typescript" fileName="layout.tsx (수정 후)">
-{`export default async function ChatLayout({ children }) {
-  let initialBlocks: Block[] = [];
-
-  try {
-    const session = await auth();
-    if (session?.user?.id) {
-      initialBlocks = await getUserBlocks(session.user.id);
-    }
-  } catch {
-    // 서버 데이터 실패 시 빈 배열 → 클라이언트 fallback이 처리
-  }
-
-  return (
-    <ClientChatLayout initialBlocks={initialBlocks}>
-      {children}
-    </ClientChatLayout>
-  );
-}`}
-          </CodeBlock>
 
           <p className="font-bold text-gray-900">2. Zustand에 동기 주입</p>
           <p>
