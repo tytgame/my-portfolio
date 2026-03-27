@@ -183,7 +183,7 @@ useEffect(() => {
   if (lastResetAt === null) return;
   // 토글 시점의 대화 길이를 경계로 고정
   useBlockStore.getState().setPivotIndex(messages.length);
-}, [lastResetAt]); // messages는 의도적으로 deps 제외`}
+}, [lastResetAt]);`}
           </CodeBlock>
           <div className="flex justify-end mt-1">
             <a
