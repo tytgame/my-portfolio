@@ -258,6 +258,7 @@ await _walkRecordService.endWalk(
           <p className="text-xs text-gray-400">
             산출 근거: 평균 보행 속도 4km/h, 30분 산책 시 약 2km 이동, 10m 필터 적용 시 ~200개 좌표 수집. 좌표 1건당 ~80바이트(lat·lng·timestamp + JSON 키), HTTP 요청 1건당 ~500바이트 오버헤드 가정.
           </p>
+          <br/>
           <p>
             좌표 페이로드는 동일하지만, 일괄 전송 방식은 <strong className="text-gray-900">HTTP 연결 수 자체를 산책 건수로 고정</strong>하여 사용자 수가 늘어도 서버 부하가 산책 횟수에만 비례하는 구조가 됩니다.
           </p>
