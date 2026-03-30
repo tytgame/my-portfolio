@@ -289,50 +289,37 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
           alt="수정 후 요청 흐름"
           className="w-full max-w-2xl mx-auto rounded"
         />
-
+        <div className="prose max-w-none text-gray-600">
+          <p>블록 비활성화 시점에 pivotIndex를 기록하고 이를 기준으로 messages[]를 분리해 UI와 LLM에 각각 다른 데이터를 전달하는 구조로 개선했습니다.</p>
+        </div>
+        <br/>
         {/* 검증 */}
         <div className="prose max-w-none text-gray-600 space-y-4">
           <p className="font-bold text-gray-900">검증</p>
-          <p>
-            sliceMessagesByReset 함수에 대해 15개의 단위 테스트를 작성하여 경계값, 빈 배열, 원본 불변성, 실제 토글 시나리오를 검증했습니다.
-            전체 사용자 플로우는 Playwright E2E 테스트로 확인했습니다.
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-gray-600">
-              <thead>
-                <tr className="border-b border-border-light text-left">
-                  <th className="py-2 pr-4 font-bold text-gray-900">단계</th>
-                  <th className="py-2 pr-4 font-bold text-gray-900">사용자 행동</th>
-                  <th className="py-2 pr-4 font-bold text-gray-900">AI 응답</th>
-                  <th className="py-2 font-bold text-gray-900">결과</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4">1</td>
-                  <td className="py-2 pr-4">블록 활성 상태에서 "내 이름이 뭐야?"</td>
-                  <td className="py-2 pr-4">"홍길동님입니다"</td>
-                  <td className="py-2">PASS</td>
-                </tr>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4">2</td>
-                  <td className="py-2 pr-4">블록 비활성화 후 "내 이름이 뭐야?"</td>
-                  <td className="py-2 pr-4">"알 수 없습니다"</td>
-                  <td className="py-2">PASS</td>
-                </tr>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4">3</td>
-                  <td className="py-2 pr-4">블록 재활성화 후 "내 이름이 뭐야?"</td>
-                  <td className="py-2 pr-4">"홍길동님입니다"</td>
-                  <td className="py-2">PASS</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="not-prose grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-sm font-medium text-gray-900 mb-2 text-center">Playwright E2E 리포트</p>
+              <div className="border border-gray-200 rounded overflow-hidden h-52 bg-gray-50 flex items-center justify-center">
+                <img
+                  src="/BlockmindResultE2Esteps.png"
+                  alt="Playwright E2E 리포트"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-2">실제 LLM API를 호출해 블록 토글 전후 AI 응답이 반영됨을 브라우저에서 검증했습니다.</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900 mb-2 text-center">Jest 단위 테스트</p>
+              <div className="border border-gray-200 rounded overflow-hidden h-52 bg-gray-50 flex items-center justify-center">
+                <img
+                  src="/BlockmindResultJest.png"
+                  alt="Jest 단위 테스트"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-2">updateBlock, removeBlock, sliceMessagesByReset 함수의 중복 토글, 블록 삭제, null 경로 엣지 케이스를 포함해 pivotIndex 동작을 25개 단위 테스트로 검증했습니다.</p>
+            </div>
           </div>
-
-          <p>
-            결과적으로 블록 토글 후에도 UI의 채팅 내역은 그대로 유지되면서 사용자의 블록 토글이 AI 응답에 확실히 반영되는 구조를 설계하여 완성하였습니다.
-          </p>
         </div>
       </section>
 
