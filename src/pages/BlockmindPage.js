@@ -388,7 +388,7 @@ export default function ChatLayout({ children }) {
 
           <p>
             Zustand store의 초기값은 blocks: []이고 이것이 <strong className="text-gray-900">실제 데이터가 없는건지, fetch 중이라 비어있는 건지</strong> 구분할 방법이 없었습니다.
-            이 것을 CSR으로 해결하려면 isLoading 같은 상태를 추가해서 스피너를 보여줄 순 있었지만 CSR 구조에서는 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에 빈 배열이 먼저 렌더되는 <strong className="text-gray-900">구조적인 한계</strong>가 있었습니다.
+            이것을 CSR로 해결하려면 isLoading 같은 상태를 추가해서 스피너를 보여줄 수도 있었지만 CSR 구조에서는 여전히 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에 빈 배열이 먼저 렌더되는 <strong className="text-gray-900">구조적인 한계</strong>가 있었습니다.
           </p>
         </div>
 
