@@ -33,8 +33,8 @@ function BlockmindPage() {
           <span className="text-sm font-mono text-gray-500 mt-2 md:mt-0">2026.01 - 2026.03</span>
         </div>
         <p className="text-lg text-gray-700 mb-6 font-light leading-relaxed">
-        사용자의 대화를 바탕으로 정보를 블록으로 생성하고, <br/>
-        AI 대화에서 어떤 컨텍스트가 답변에 반영되는지 시각화하고 제어할 수 있는 서비스
+        사용자와의 대화를 바탕으로 정보가 블록으로 만들어지고 <br/>
+        AI 답변 맥락을 시각화하여 제어할 수 있는 채팅 서비스
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-mono text-gray-600">
           <span>Next.js</span>
@@ -296,28 +296,28 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
         {/* 검증 */}
         <div className="prose max-w-none text-gray-600 space-y-4">
           <p className="font-bold text-gray-900">검증</p>
-          <div className="not-prose grid grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm font-medium text-gray-900 mb-2 text-center">Playwright E2E 리포트</p>
-              <div className="border border-gray-200 rounded overflow-hidden h-52 bg-gray-50 flex items-center justify-center">
+          <div className="not-prose border border-gray-200 rounded overflow-hidden">
+            <div className="grid grid-cols-2 divide-x divide-gray-200">
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-gray-900 py-2 text-center border-b border-gray-200">Playwright E2E 리포트</p>
                 <img
                   src="/BlockmindResultE2Esteps.png"
                   alt="Playwright E2E 리포트"
-                  className="w-full h-full object-contain"
+                  className="w-full block"
                 />
+                <div className="flex-1" />
+                <p className="text-sm text-gray-600 px-4 py-3 border-t border-gray-200">실제 LLM API를 호출해 블록 토글 전후 AI 응답이 반영됨을 브라우저에서 검증했습니다.</p>
               </div>
-              <p className="text-sm text-gray-600 mt-2">실제 LLM API를 호출해 블록 토글 전후 AI 응답이 반영됨을 브라우저에서 검증했습니다.</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900 mb-2 text-center">Jest 단위 테스트</p>
-              <div className="border border-gray-200 rounded overflow-hidden h-52 bg-gray-50 flex items-center justify-center">
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-gray-900 py-2 text-center border-b border-gray-200">Jest 단위 테스트</p>
                 <img
                   src="/BlockmindResultJest.png"
                   alt="Jest 단위 테스트"
-                  className="w-full h-full object-contain"
+                  className="w-full block"
                 />
+                <div className="flex-1" />
+                <p className="text-sm text-gray-600 px-4 py-3 border-t border-gray-200">updateBlock, removeBlock, sliceMessagesByReset 함수의 중복 토글, 블록 삭제, null 경로 엣지 케이스를 포함해 pivotIndex 동작을 25개 단위 테스트로 검증했습니다.</p>
               </div>
-              <p className="text-sm text-gray-600 mt-2">updateBlock, removeBlock, sliceMessagesByReset 함수의 중복 토글, 블록 삭제, null 경로 엣지 케이스를 포함해 pivotIndex 동작을 25개 단위 테스트로 검증했습니다.</p>
             </div>
           </div>
         </div>
