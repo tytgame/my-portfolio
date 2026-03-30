@@ -95,9 +95,9 @@ function BlockmindPage() {
           <br/><br/>
             블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다.
             <br/>
-            즉, LLM은 systemPrompt와 messages[]를 모두 읽기 때문에 <strong className="text-gray-900">메시지 배열에 남아 있는 과거 정보가 그대로 참조</strong>되고 있었던 것이 원인이었습니다.
+            즉, LLM은 systemPrompt와 messages[]를 모두 읽고 답변하기 때문에 <strong className="text-gray-900">메시지 배열에 남아 있는 과거 정보가 그대로 참조</strong>되고 있었던 것이 원인이었습니다.
             <br/><br/>
-            또한 이 messages 배열은 화면 렌더링에도 동시에 사용되고 있어, 전송 데이터를 수정하면 채팅 UI도 함께 변하는 <strong className="text-gray-900">구조적 문제</strong>가 있었습니다.
+            또한 이 메시지 배열은 화면 렌더링에도 동시에 사용되고 있어 LLM에 전송하는 데이터를 수정하면 채팅 UI도 함께 변하는 <strong className="text-gray-900">구조적 문제</strong>가 있었습니다.
           </p>
         </div>
 
@@ -118,11 +118,11 @@ function BlockmindPage() {
             <strong className="text-gray-900 -ml-11">A안 -</strong> 블록 토글은 결정론적으로 반영되어야 하는 사용자 조작이지만 프롬프트 지시에 대한 <strong className="text-gray-900">LLM의 응답은 비결정적</strong>이므로 안정성을 보장하기 어렵다고 판단했습니다.
           </p>
           <p className="pl-12">
-            <strong className="text-gray-900 -ml-11">B안 -</strong> <strong className="text-gray-900">어떤 메시지가 블록과 관련된 것인지 의미적으로 판단</strong>해야 하기 때문에 삭제 기준이 일관되기 어렵고, 메시지를 배열에서 직접 삭제하는 방식으로 사용자의 채팅 내역이 사라져 대화의 흐름이 깨지는 문제가 있었습니다.
+            <strong className="text-gray-900 -ml-11">B안 -</strong> <strong className="text-gray-900">어떤 메시지가 블록과 관련된 것인지 의미적으로 판단</strong>해야 하기 때문에 삭제 기준이 일관되지 않고 메시지를 배열에서 직접 삭제하는 방식으로, 사용자의 채팅 내역이 사라져 대화의 흐름이 깨지는 문제가 예상되었습니다.
           </p>
           <p className="pl-12">
             <strong className="text-gray-900 -ml-11">C안 -</strong> 하나의 메시지 배열이 <strong className="text-gray-900">화면 표시</strong>와 <strong className="text-gray-900">모델 전송</strong> 두 역할을 동시에 담당하던 구조를 분리하는 방식입니다.
-            이를 위해 모델이 참조하는 대화 범위를 별도로 관리하고, 전송 시에는 <strong className="text-gray-900">그 범위에 해당하는</strong> 메시지만 전달하도록 했습니다. 화면에는 전체 대화가 유지되므로 <strong className="text-gray-900">사용자 경험</strong>을 해치지 않으면서 <strong className="text-gray-900">맥락을 제어</strong>할 수 있어 이 방안을 채택하였습니다.
+            이를 위해 모델이 참조하는 대화 범위를 별도로 관리하고 전송 시에는 <strong className="text-gray-900">그 범위에 해당하는</strong> 메시지만 전달하는 방식으로, 화면에는 전체 대화가 유지되므로 <strong className="text-gray-900">사용자 경험</strong>을 해치지 않으면서 <strong className="text-gray-900">맥락을 제어</strong>할 수 있어 이 방안을 채택하였습니다.
           </p>
         </div>
         <br/><br/>
@@ -134,12 +134,12 @@ function BlockmindPage() {
           <p className="font-bold text-gray-900">상태 분리 설계</p>
           <p>
             C안의 구현을 위해 먼저 두 개의 역할을 가지고 있는 messages[]을 <strong className="text-gray-900">어떤 기준</strong>으로 분리할 것인지 결정해야 했습니다.<br/>
-            처음엔 단순하게 모델 전송용 메시지를 '<strong className="text-gray-900">블록 토글 시각</strong> 기준으로 분리하면 되겠다' 라는 생각으로 진행하였습니다.<br/>
+            처음엔 단순히 모델 전송용 메시지를 '<strong className="text-gray-900">블록 토글 시각 기준으로 분리</strong> 하면 되겠다' 라는 생각으로 진행하였습니다.<br/>
             <br/>
-            따라서 블록 토글 시각(lastResetAt) 이후에 생성된 메시지만 필터링하여 전송하는 <strong className="text-gray-900">타임스탬프</strong> 방식으로 접근했습니다.<br/>
-            하지만 AI SDK 라이브러리 내부 함수인 useChat이 반환하는 메시지 객체에 항상 createdAt 필드가 있다는 보장을 할 수 없었고, 언제든 바뀔 수 있는 라이브러리 세부 구현에 의존하는 방식이라 <strong className="text-gray-900">불안정한 방식</strong>이라고 판단했습니다.<br/>
+            따라서 블록 토글 시각인 lastResetAt 이후에 생성된 메시지만 필터링하여 전송하는 <strong className="text-gray-900">타임스탬프</strong> 방식으로 접근했습니다.<br/>
+            하지만 AI SDK 라이브러리 내부 함수인 useChat이 반환하는 메시지 객체에 항상 createdAt 필드가 있다는 보장을 할 수 없었고, 형식이 변할 수 있는 라이브러리 세부 구현에 의존하는 방식이라 <strong className="text-gray-900">불안정한 방식</strong>이라고 판단하여 다른 기준을 찾아 보았습니다.<br/>
             <br/>
-            제가 실제로 필요했던 것은 <strong className="text-gray-900">명확한 대화 범위 관리</strong>였기 때문에 시간이라는 경계값보다 <strong className="text-gray-900">인덱스</strong> 경계값을 사용하는 것이 안정적인 방식이라고 판단했습니다. 그래서 <strong className="text-gray-900">pivotIndex</strong>를 경계로 모델 전송용 메시지를 분리하여 구현을 진행했습니다.<br/>
+            제가 실제로 필요했던 것은 정확한 <strong className="text-gray-900">대화 범위의 관리</strong>였기 때문에 시간이라는 경계값보다 <strong className="text-gray-900">인덱스</strong> 경계값을 사용하는 것이 안정적인 방식이라고 판단했습니다. 그래서 <strong className="text-gray-900">pivotIndex</strong>를 경계로 모델 전송용 메시지를 분리하여 구현을 진행했습니다.<br/>
             
 
           </p>
@@ -174,7 +174,7 @@ function BlockmindPage() {
           </p>
           <p>
             그래서 블록 토글이 반영된 뒤의 시점에서 messages.length 값을 읽도록 했습니다.<br/>
-            lastResetAt이 변경되어 React가 리렌더하고, 그 리렌더가 커밋된 후 useEffect에서 messages.length를 읽어 pivotIndex로 기록했습니다.<br/>
+            lastResetAt이 변경되어 React가 리렌더하고 커밋된 후 useEffect에서 messages.length를 읽어 pivotIndex로 기록했습니다.<br/>
           </p>
           <CodeBlock language="typescript" fileName="chat-interface.tsx">
 {`const lastResetAt = useBlockStore((state) => state.lastResetAt);
@@ -207,7 +207,7 @@ useEffect(() => {
             <p>
             값이 바뀌어도 렌더링을 일으키지 않는 ref에 저장해 컴포넌트 내부에서 처리하려 했지만 pivotIndex는 단순한 임시값이 아니라 <strong className="text-gray-900">블록 토글 시점</strong>부터 <strong className="text-gray-900">메시지 전송 시점</strong>까지 값이 일관되어야 하는 <strong className="text-gray-900">전역 수준 상태</strong>였습니다.
 
-            ref로 처리한다면 각각 다른 컴포넌트에 값 전달을 위해 props-driling이 필요해져 구조가 복잡해질 것이라 예상했습니다.
+            ref로 처리한다면 각각 다른 컴포넌트에 값 전달을 위해 props-driling이 필요해져 구조가 필요 이상으로 복잡해질 것이라 생각했습니다.
           </p>
 
           <p>
@@ -233,8 +233,8 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
 
           <p className="font-bold text-gray-900">3. 읽기 시점 결정</p>
           <p>
-            또한 기록한 값을 <strong className="text-gray-900">언제 그리고 어떤 방식으로 읽을지</strong>도 중요했습니다.
-            이 값은 메시지 전송 시점에 요청 body에 포함되어야 했기 때문에 항상 <strong className="text-gray-900">최신 값</strong>을 읽어야 했습니다.<br/><br/>
+            또한 기록한 값을 <strong className="text-gray-900">언제, 어떤 방식으로 읽을지</strong>도 중요했습니다.
+            이 값은 메시지 전송 시점에 요청 body에 포함되어야 했기 때문에 항상 <strong className="text-gray-900">최신 값</strong>을 읽어야 하는 조건이 있었습니다.<br/><br/>
             문제는 transport 객체가 useMemo(fn, [])로 한 번만 생성된다는 점이었습니다. useMemo는 컴포넌트가 처음 마운트될 때 fn을 한 번 실행한 뒤 그 결과를 재사용하므로 body() 안에서 일반 상태나 변수를 직접 참조하면 <strong className="text-gray-900">마운트 시점의 값이 클로저에 고정</strong>될 수 있었습니다.
             이렇게 되면 이후 상태가 바뀌더라도 이전 값을 읽게 되는 <strong className="text-gray-900">stale closure 문제</strong>가 발생할 수 있었습니다.
             </p>
@@ -271,7 +271,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
 
           <br/>
 
-          <p className="font-bold text-gray-900">4. 서버에서 메시지 정제</p>
+          <p className="font-bold text-gray-900">4. 최종 적용</p>
           <p>
             클라이언트가 보낸 pivotIndex를 바탕으로 서버 API route에서 <strong className="text-gray-900">메시지를 정제하여 LLM에 전달</strong>했습니다.
           </p>
