@@ -33,8 +33,8 @@ function BlockmindPage() {
           <span className="text-sm font-mono text-gray-500 mt-2 md:mt-0">2026.01 - 2026.03</span>
         </div>
         <p className="text-lg text-gray-700 mb-6 font-light leading-relaxed">
-        사용자와의 대화를 바탕으로 정보가 블록으로 만들어지고 <br/>
-        AI 답변 맥락을 시각화하여 제어할 수 있는 채팅 서비스
+        사용자의 대화를 바탕으로 정보를 블록으로 만들고<br/>
+        AI의 기억을 시각화하여 제어할 수 있는 채팅 서비스
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-mono text-gray-600">
           <span>Next.js</span>
@@ -93,7 +93,7 @@ function BlockmindPage() {
         <div className="prose max-w-none text-gray-600">
           <p>처음엔 <strong className="text-gray-900">LLM이 자체적으로 내용을 기억하는 고유한 특성</strong>을 원인으로 생각했지만 사실은 이와 달랐습니다.
           <br/><br/>
-            블록 비활성화 상태로 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다.
+            블록 비활성화 상태로 브라우저 개발자 도구 Network의 채팅 payload를 확인해보니 systemPrompt는 제거되었지만 메시지 배열은 그대로 전송하고 있었습니다.
             <br/>
             즉, LLM은 systemPrompt와 messages[]를 모두 읽고 답변하기 때문에 <strong className="text-gray-900">메시지 배열에 남아 있는 과거 정보가 그대로 참조</strong>되고 있었던 것이 원인이었습니다.
             <br/><br/>
@@ -332,10 +332,10 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
         </h3>
         <div className="prose max-w-none text-gray-600">
           <p>
-          채팅 페이지를 리로드하면 우측 블록 패널에 '블록이 없습니다'가 100 ~ 500ms 동안 나타났다가 실제 블록 목록이 나타나는 현상이 있었습니다.
-          메인 채팅 영역도 마찬가지로 채팅 내용이 있는 상태에서 새 채팅 페이지(/chat)이 먼저 렌더링 된 뒤 이전 채팅 내용이 복원되었습니다.
+          채팅 페이지를 리로드하면 우측 블록 패널에 '블록이 없습니다'가 100 ~ 500ms 동안 나타났다가 <strong className="text-gray-900">실제 블록 데이터가 늦게 나타나는 현상</strong>이 있었습니다.
+          메인 채팅 영역도 마찬가지로 채팅 내용이 있는 상태에서 새 채팅 페이지가 먼저 렌더링 된 뒤 이전 채팅 세션이 복원되었습니다.
           <br/><br/>
-          이런 현상은 사용자 경험을 크게 저해하는 일이기에 무엇이 원인인지 정의하고 <strong className="text-gray-900">블록 패널</strong>과 <strong className="text-gray-900">채팅 영역</strong> 각 상황에 알맞게 해결해야 했습니다.
+          짧은 순간이지만 채팅 페이지에 진입할 때마다 깜빡임이 보여 <strong className="text-gray-900">서비스의 완성도</strong>를 낮추는 문제였습니다. 따라서 무엇이 원인인지 정의하고 <strong className="text-gray-900">블록 패널</strong>과 <strong className="text-gray-900">채팅 영역</strong> 각 상황에 맞게 해결해야 했습니다.
           </p>
         </div>
 
@@ -380,16 +380,19 @@ export default function ChatLayout({ children }) {
             className="max-w-[17rem] mx-auto rounded"
           />
           <p>
-            으로 진행되어 4번과 7번 사이에 블록 컴포넌트에 초기값이 비어있었기 때문에 '블록이 없습니다'가 나타났습니다. 
+            으로 진행되어 4번과 7번 사이 블록 컴포넌트에 초기값이 비어있었기 때문에 '블록이 없습니다'가 나타났습니다. 
 
           </p>
 
           <br/>
 
           <p>
-            Zustand store의 초기값은 blocks: []이고 이것이 <strong className="text-gray-900">실제 데이터가 없는건지, fetch 중이라 비어있는 건지</strong> 구분할 방법이 없었습니다.
-            이것을 CSR로 해결하려면 isLoading 같은 상태를 추가해서 스피너를 보여줄 수도 있었지만 CSR 구조에서는 여전히 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에 빈 배열이 먼저 렌더되는 <strong className="text-gray-900">구조적인 한계</strong>가 있었습니다.
+            Zustand store의 초기값은 blocks: []이고 이것이 <strong className="text-gray-900">실제 데이터가 없는 것인지, fetch 중이라 비어있는 것인지</strong> 구분할 방법이 없었습니다.
+            이것을 CSR로 해결하려면 isLoading과 같은 상태를 추가해서 스피너를 보여줄 수도 있었지만 CSR 구조에서는 여전히 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에 빈 배열이 먼저 렌더되는 <strong className="text-gray-900">구조적인 한계</strong>가 있었습니다.
           </p>
+          <br/>
+          
+
         </div>
 
         <br/>
@@ -398,34 +401,37 @@ export default function ChatLayout({ children }) {
         <h4 className="text-xl font-bold text-gray-900">해결 과정</h4>
         <div className="prose max-w-none text-gray-600 space-y-4">
           <p>
-            빈 화면 flash를 제거하려면 <strong className="text-gray-900">데이터 주입 시점을 서버로 올려야</strong> 했습니다. layout.tsx를 async Server Component로 전환하여, 서버에서 블록 데이터를 조회한 뒤 HTML에 포함시켜 전달하는 방식으로 변경했습니다.
+            이 데이터가 없는 HTML이 먼저 렌더링 되는 구조를 보완하기 위해선 <strong className="text-gray-900">데이터 주입 시점을 클라이언트가 아닌 서버로 올려야</strong> 했습니다.
+            layout.tsx를 Server Component로 전환하여 서버에서 블록 데이터를 HTML에 포함시켜 전달하는 방식으로 변경했습니다.
           </p>
+          <p className="font-bold text-gray-900">1.Server Component에서 데이터 조회</p>
 
-          <p className="font-bold text-gray-900">1. layout.tsx → async Server Component 전환</p>
+          <img
+            src="/BlockmindSSRflow.png"
+            alt="layout SSR 렌더링 흐름"
+            className="max-w-[12rem] mx-auto rounded"
+          />
+          <p>기존 layout.tsx는 Client Component로 마운트 후 useEffect로 블록을 불러왔지만 이제 서버에서 auth로 세션을 확인한 뒤 getUserBlocks()로 블록을 조회하고 그 결과를 initialBlocks라는 props로 클라이언트 컴포넌트에 전달합니다.</p>
+
+          <p>브라우저가 받는 HTML에는 이미 블록 데이터가 포함되어 있으므로 클라이언트에서 별도 fetch가 필요 없습니다.</p>
+         
           <p>
-            서버에서 <code>auth()</code>로 세션을 확인하고 <code>getUserBlocks()</code>로 블록을 조회한 뒤, initialBlocks를 props로 클라이언트 컴포넌트에 전달합니다.
+            서버 컴포넌트에서 모든 작업을 처리하진 않았습니다. 왜냐하면 Zustand block store에 접근하거나 React Hooks, UI 인터렉션은 클라이언트에서만 가능하기 때문입니다.
           </p>
 
-          <p className="font-bold text-gray-900">2. Zustand에 동기 주입</p>
+          <p className="font-bold text-gray-900">2. 클라이언트에서 Zustand에 동기 주입</p>
           <p>
-            서버에서 받은 initialBlocks를 클라이언트 컴포넌트의 <strong className="text-gray-900">렌더 단계에서 동기적으로</strong> Zustand store에 주입했습니다.
-            useEffect를 사용하면 렌더가 끝난 후 실행되어 첫 프레임에서 여전히 빈 배열이 렌더되므로, <strong className="text-gray-900">useRef 가드와 함께 렌더 단계에서 직접 호출</strong>하는 방식을 선택했습니다.
-          </p>
-          <CodeBlock language="typescript" fileName="client-chat-layout.tsx">
-{`'use client';
+            서버에서 전달받은 initialBlocks를 useEffect가 아닌 렌더 단계에서 useRef를 통해 동기적으로 Zustand store에 주입합니다.
 
-export function ClientChatLayout({ children, initialBlocks }) {
-  // 렌더 단계에서 동기적으로 store에 주입 (첫 프레임부터 데이터 존재)
-  const initializedRef = React.useRef(false);
-  if (!initializedRef.current && initialBlocks.length > 0) {
-    useBlockStore.getState().setBlocks(initialBlocks);
-    initializedRef.current = true;
-  }
+            </p>
+            <p>
+            useEffect를 사용하면 렌더가 끝난 후 실행되어 첫 프레임에서 여전히 빈 배열이 렌더되기 때문에 useRef를 사용해야 컴포넌트의 첫 번째 렌더링 시점에 이미 store에 블록 데이터가 존재하므로 블록 패널이 빈 상태를 거치지 않습니다.
+            </p>
 
-  // fallback: 서버 데이터가 비어있으면 클라이언트에서 재시도
-  useBlocksInit(initialBlocks.length > 0);
-}`}
-          </CodeBlock>
+            <p>
+            또한 useBlocksInit에는 skip 파라미터를 추가하여 서버 데이터가 정상적으로 주입된 경우 클라이언트 fetch를 건너뛰고, 서버에서 미인증 혹은 네트워크 오류시에만 기존 CSR방식으로 fallback하도록 했습니다.
+            </p>
+          
 
           <p className="font-bold text-gray-900">3. 채팅 영역은 SSR 대상에서 제외</p>
           <p>
