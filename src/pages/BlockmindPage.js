@@ -335,7 +335,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
           채팅 페이지를 리로드하면 우측 블록 패널에 '블록이 없습니다'가 100 ~ 500ms 동안 나타났다가 <strong className="text-gray-900">실제 블록 데이터가 늦게 나타나는 현상</strong>이 있었습니다.
           메인 채팅 영역도 마찬가지로 채팅 내용이 있는 상태에서 새 채팅 페이지가 먼저 렌더링 된 뒤 이전 채팅 세션이 복원되었습니다.
           <br/><br/>
-          짧은 순간이지만 채팅 페이지에 진입할 때마다 깜빡임이 보여 <strong className="text-gray-900">서비스의 완성도</strong>를 낮추는 문제였습니다. 따라서 무엇이 원인인지 정의하고 <strong className="text-gray-900">블록 패널</strong>과 <strong className="text-gray-900">채팅 영역</strong> 각 상황에 맞게 해결해야 했습니다.
+          짧은 순간이지만 채팅 페이지에 진입할 때마다 깜빡임이 보여 <strong className="text-gray-900">사용자 경험과 서비스 완성도</strong>를 낮추는 문제였습니다. 따라서 무엇이 원인인지 정의하고 <strong className="text-gray-900">블록 패널</strong>과 <strong className="text-gray-900">채팅 영역</strong> 각 상황에 맞게 해결해야 했습니다.
           </p>
         </div>
 
@@ -388,7 +388,7 @@ export default function ChatLayout({ children }) {
 
           <p>
             Zustand store의 초기값은 blocks: []이고 이것이 <strong className="text-gray-900">실제 데이터가 없는 것인지, fetch 중이라 비어있는 것인지</strong> 구분할 방법이 없었습니다.
-            이것을 CSR로 해결하려면 isLoading과 같은 상태를 추가해서 스피너를 보여줄 수도 있었지만 CSR 구조에서는 여전히 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에 빈 배열이 먼저 렌더되는 <strong className="text-gray-900">구조적인 한계</strong>가 있었습니다.
+            이것을 CSR로 해결하려면 isLoading과 같은 상태를 추가해서 스피너를 보여줄 수도 있었지만 CSR 구조에서는 여전히 JavaScript가 로드되고 실행된 후에야 데이터를 요청할 수 있기 때문에 <strong className="text-gray-900">빈 배열이 먼저 렌더되는 구조</strong>는 바꿀 수 없었습니다.
           </p>
           <br/>
           
@@ -401,43 +401,46 @@ export default function ChatLayout({ children }) {
         <h4 className="text-xl font-bold text-gray-900">해결 과정</h4>
         <div className="prose max-w-none text-gray-600 space-y-4">
           <p>
-            이 데이터가 없는 HTML이 먼저 렌더링 되는 구조를 보완하기 위해선 <strong className="text-gray-900">데이터 주입 시점을 클라이언트가 아닌 서버로 올려야</strong> 했습니다.
-            layout.tsx를 Server Component로 전환하여 서버에서 블록 데이터를 HTML에 포함시켜 전달하는 방식으로 변경했습니다.
+            데이터가 없는 HTML이 먼저 렌더링 되는 구조를 보완하기 위해선 <strong className="text-gray-900">데이터 전달 시점을 클라이언트가 아닌 서버로 올려야</strong> 했습니다.
+            따라서 layout을 Server Component로 전환하여 서버에서 블록 데이터를 HTML에 포함시켜 전달하는 방식으로 변경했습니다.
           </p>
-          <p className="font-bold text-gray-900">1.Server Component에서 데이터 조회</p>
+          <br/>
+          <p className="font-bold text-gray-900">1. layout.tsx를 Server Component로 전환</p>
 
           <img
             src="/BlockmindSSRflow.png"
             alt="layout SSR 렌더링 흐름"
-            className="max-w-[12rem] mx-auto rounded"
+            className="max-w-[14rem] mx-auto rounded"
           />
-          <p>기존 layout.tsx는 Client Component로 마운트 후 useEffect로 블록을 불러왔지만 이제 서버에서 auth로 세션을 확인한 뒤 getUserBlocks()로 블록을 조회하고 그 결과를 initialBlocks라는 props로 클라이언트 컴포넌트에 전달합니다.</p>
+          <p>기존 layout 구조는 Client Component로 마운트 후 useEffect로 블록을 불러왔지만, 변경한 Server Component layout에서는 <strong className="text-gray-900">auth로 사용자를 확인한 뒤 getUserBlocks()로 블록을 조회하고 그 데이터를 initialBlocks라는 props로 클라이언트 컴포넌트에 전달하는 구조</strong>로 개선하였습니다.</p>
 
-          <p>브라우저가 받는 HTML에는 이미 블록 데이터가 포함되어 있으므로 클라이언트에서 별도 fetch가 필요 없습니다.</p>
-         
-          <p>
-            서버 컴포넌트에서 모든 작업을 처리하진 않았습니다. 왜냐하면 Zustand block store에 접근하거나 React Hooks, UI 인터렉션은 클라이언트에서만 가능하기 때문입니다.
-          </p>
-
-          <p className="font-bold text-gray-900">2. 클라이언트에서 Zustand에 동기 주입</p>
-          <p>
-            서버에서 전달받은 initialBlocks를 useEffect가 아닌 렌더 단계에서 useRef를 통해 동기적으로 Zustand store에 주입합니다.
-
-            </p>
-            <p>
-            useEffect를 사용하면 렌더가 끝난 후 실행되어 첫 프레임에서 여전히 빈 배열이 렌더되기 때문에 useRef를 사용해야 컴포넌트의 첫 번째 렌더링 시점에 이미 store에 블록 데이터가 존재하므로 블록 패널이 빈 상태를 거치지 않습니다.
-            </p>
-
-            <p>
-            또한 useBlocksInit에는 skip 파라미터를 추가하여 서버 데이터가 정상적으로 주입된 경우 클라이언트 fetch를 건너뛰고, 서버에서 미인증 혹은 네트워크 오류시에만 기존 CSR방식으로 fallback하도록 했습니다.
-            </p>
+          <p>이로써 브라우저가 받는 HTML에는 이미 블록 데이터가 포함되어 있으므로 클라이언트가 마운트되는 시점에 별도 fetch 없이 데이터를 바로 사용할 수 있게 되었습니다.</p>
+          <br/>
+          <p className="font-bold text-gray-900">2. 서버에서 받은 데이터를 렌더 단계에서 store에 반영</p>
           
+          <p>
+            하지만 UI 상태 관리와 인터렉션, React Hooks는 클라이언트에서만 동작하기 때문에 서버에서 전달받은 데이터를 클라이언트 컴포넌트의 렌더 단계에서 store에 직접 반영했습니다.
+          </p>
+          
+          <p>
+            useEffect는 렌더가 끝난 후 실행되기 때문에 첫 프레임에서 여전히 빈 배열이 렌더됩니다. 이를 막기 위해 서버에서 전달받은 initialBlocks를 <strong className="text-gray-900">렌더 단계에서 useRef를 통해 동기적으로 store에 반영</strong>해 첫 렌더부터 블록 데이터가 존재하도록 했습니다.
+            </p>
+
+            <p>
+            또한 서버 데이터가 정상적으로 전달된 경우 클라이언트 fetch를 건너뛰고, 미인증 혹은 네트워크 오류로 서버 데이터 전달에 실패하거나 사용자 블록이 없는 경우에만 기존 CSR방식으로 fallback 하도록 useBlocksInit에 skip 파라미터를 추가했습니다.
+            </p>
+          <br/>
 
           <p className="font-bold text-gray-900">3. 채팅 영역은 SSR 대상에서 제외</p>
           <p>
-            블록 패널은 SSR로 전환했지만, 채팅 영역은 CSR + 스피너 방식을 유지했습니다.
-            메시지가 수백 개인 세션을 SSR하면 서버 조회가 완료될 때까지 HTML 자체가 전송되지 않아 스피너보다 나쁜 UX가 되고,
-            AI SDK의 <code>useChat</code> 훅이 메시지 배열을 자체 관리하며 스트리밍을 처리하기 때문에 서버 주입 데이터와의 동기화 복잡도가 높았습니다.
+            블록 패널은 SSR을 통해 첫 렌더부터 데이터가 존재하도록 전환했지만, 채팅 영역은 기존의 빈 채팅 화면 대신 fetch 완료 전까지 스피너를 표시하는 방식으로 <strong className="text-gray-900">CSR 방식 내에서 UX를 보완</strong>했습니다.
+            </p>
+
+            <p>
+              채팅 메시지는 세션마다 수십~수백 개로 크기가 유동적인 데이터라 SSR로 전환하면 서버가 DB를 모두 조회할 때까지 HTML 자체가 브라우저에 전달되지 않아 오히려 <strong className="text-gray-900">빈 화면이 더 길어지는 역효과</strong>가 예상되었습니다.
+            </p>
+            <p>
+            그리고 <strong className="text-gray-900">채팅 세션과 무관하게 공통으로 쓰이는 블록 패널</strong>과 달리 메시지는 SSR의 이점이 크지 않다고 판단하여 CSR + 스피너 방식으로 로딩 UX를 개선하였습니다.
           </p>
         </div>
 
@@ -475,7 +478,7 @@ export default function ChatLayout({ children }) {
             </table>
           </div>
           <p>
-            블록 패널의 빈 화면 flash가 제거되어 첫 프레임부터 데이터가 표시되고, 블록 조회를 위한 별도 API 요청이 사라져 네트워크 요청 수도 줄었습니다.
+            블록 패널의 빈 화면이 제거되어 첫 렌더부터 데이터가 표시되고, 블록 조회를 위한 별도 API 요청이 사라져 네트워크 요청 수도 줄었습니다.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-6">
