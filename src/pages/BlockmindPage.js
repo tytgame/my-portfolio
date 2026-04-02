@@ -340,8 +340,143 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
 
       <br/>
 
-      {/* 2번째 문제 */}
+      {/* ───────────── 2번째: 개선 사항 ───────────── */}
+
       <section id="bm-2" className="space-y-4">
+        <h3 className="text-3xl font-bold border-b border-border-light pb-2">
+          개선 사항 : LLM API 호출 2회→1회로 통합하여 토큰 38% 절감
+        </h3>
+
+        {/* 현재 구조 */}
+        <h4 className="text-xl font-bold text-gray-900">현재 구조</h4>
+        <div className="prose max-w-none text-gray-600 space-y-3">
+          <p>
+            사용자가 메시지를 보낼 때마다 채팅 응답과 블록 자동 추출을 위해 LLM API가 <strong className="text-gray-900">2회 호출</strong>되고 있었습니다.
+            1차 호출(<code>/api/chat</code>)에서 스트리밍 응답을 받은 뒤, 응답이 완료되면 항상 2차 호출(<code>/api/blocks/extract</code>)이 실행되었고,
+            이 2차 호출은 1차에서 이미 전송한 user 메시지와 assistant 메시지를 <strong className="text-gray-900">Gemini에 다시 전송</strong>하는 구조였습니다.
+          </p>
+        </div>
+        <img
+          src="/BlockmindLLMbefore.png"
+          alt="현재 구조 시퀀스 다이어그램"
+          className="w-full max-w-2xl mx-auto rounded"
+        />
+        <div className="prose max-w-none text-gray-600 space-y-3">
+          <p>
+            서버 로그에서 토큰 사용량을 측정한 결과, 문제가 수치로 확인되었습니다.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-gray-600">
+              <thead>
+                <tr className="border-b border-border-light text-left">
+                  <th className="py-2 pr-4 font-bold text-gray-900"></th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">/api/chat (1차)</th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">/api/blocks/extract (2차)</th>
+                  <th className="py-2 font-bold text-gray-900">합계</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">input tokens</td>
+                  <td className="py-2 pr-4">448</td>
+                  <td className="py-2 pr-4">1,307</td>
+                  <td className="py-2">1,755</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">output tokens</td>
+                  <td className="py-2 pr-4">1,088</td>
+                  <td className="py-2 pr-4">391</td>
+                  <td className="py-2">1,479</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">total</td>
+                  <td className="py-2 pr-4 font-bold text-gray-900">1,536</td>
+                  <td className="py-2 pr-4 font-bold text-gray-900">1,698</td>
+                  <td className="py-2 font-bold text-gray-900">3,234</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            2차 호출의 input(1,307 tokens)이 1차보다 크고, 대화가 누적될수록 더 커지는 구조였습니다. 원인은 두 가지였습니다.
+          </p>
+          <p>
+            <strong className="text-gray-900">① 입력 토큰 중복</strong> — EXTRACT 호출이 1차에서 이미 전송한 대화 내용(systemPrompt + messages)을 그대로 재전송하고 있었습니다.
+          </p>
+          <p>
+            <strong className="text-gray-900">② 무조건 2회 호출</strong> — 블록을 생성하지 않아도 되는 일반 대화에서도 EXTRACT API를 항상 호출했습니다.
+          </p>
+        </div>
+
+        <br/>
+
+        {/* 개선 방향 */}
+        <h4 className="text-xl font-bold text-gray-900">개선 방향</h4>
+        <div className="prose max-w-none text-gray-600 space-y-3">
+          <p>
+            Vercel AI SDK의 <code>tool()</code> + <code>streamText(&#123; tools &#125;)</code>를 활용하여 두 호출을 하나로 통합했습니다.
+            <code>saveMemoryBlock</code> tool을 <code>/api/chat</code>의 <code>streamText</code>에 정의하면, Gemini가 응답을 생성하는 중 블록 저장이 필요하다고 판단할 때만 <strong className="text-gray-900">선택적으로 tool을 호출</strong>합니다.
+            블록 추출을 위한 별도 API 호출이 사라지고, 중복 전송되던 대화 내용도 제거됩니다.
+          </p>
+        </div>
+        <img
+          src="/BlockmindLLMafter.png"
+          alt="개선 후 시퀀스 다이어그램"
+          className="w-full max-w-2xl mx-auto rounded"
+        />
+
+        <br/>
+
+        {/* 결과 */}
+        <h4 className="text-xl font-bold text-gray-900">결과</h4>
+        <div className="prose max-w-none text-gray-600 space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-gray-600">
+              <thead>
+                <tr className="border-b border-border-light text-left">
+                  <th className="py-2 pr-4 font-bold text-gray-900"></th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">리팩토링 전 (2회 호출)</th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">리팩토링 후 (1회 호출)</th>
+                  <th className="py-2 font-bold text-gray-900">변화</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">API 호출 횟수</td>
+                  <td className="py-2 pr-4">2회</td>
+                  <td className="py-2 pr-4">1회</td>
+                  <td className="py-2">-1회</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">input tokens</td>
+                  <td className="py-2 pr-4">1,755</td>
+                  <td className="py-2 pr-4">546</td>
+                  <td className="py-2 font-bold text-gray-900">-1,209 (-68.9%)</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">output tokens</td>
+                  <td className="py-2 pr-4">1,479</td>
+                  <td className="py-2 pr-4">1,432</td>
+                  <td className="py-2">-47</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">total tokens</td>
+                  <td className="py-2 pr-4 font-bold text-gray-900">3,234</td>
+                  <td className="py-2 pr-4 font-bold text-gray-900">1,978</td>
+                  <td className="py-2 font-bold text-gray-900">-1,256 (-38.8%)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            입력 토큰의 68.9% 절감이 전체 비용 절감의 핵심입니다. EXTRACT 호출에서 대화 내용을 재전송하던 1,307 input tokens가 완전히 제거되었기 때문입니다.
+            또한 블록 추출이 불필요한 일반 대화에서는 tool이 호출되지 않으므로 절감 효과는 실제로 더 큽니다.
+          </p>
+        </div>
+      </section>
+
+      {/* 3번째 문제 */}
+      <section id="bm-3" className="space-y-4">
         <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           문제 상황 : 채팅 페이지 리로드 시 빈 화면이 순간 노출되는 문제
         </h3>
@@ -524,140 +659,7 @@ export default function ChatLayout({ children }) {
 
       <br/>
 
-      {/* ───────────── 3번째: 개선 사항 ───────────── */}
-
-      <section id="bm-3" className="space-y-4">
-        <h3 className="text-3xl font-bold border-b border-border-light pb-2">
-          개선 사항 : LLM API 호출 2회→1회로 통합하여 토큰 38% 절감
-        </h3>
-
-        {/* 현재 구조 */}
-        <h4 className="text-xl font-bold text-gray-900">현재 구조</h4>
-        <div className="prose max-w-none text-gray-600 space-y-3">
-          <p>
-            사용자가 메시지를 보낼 때마다 채팅 응답과 블록 자동 추출을 위해 LLM API가 <strong className="text-gray-900">2회 호출</strong>되고 있었습니다.
-            1차 호출(<code>/api/chat</code>)에서 스트리밍 응답을 받은 뒤, 응답이 완료되면 항상 2차 호출(<code>/api/blocks/extract</code>)이 실행되었고,
-            이 2차 호출은 1차에서 이미 전송한 user 메시지와 assistant 메시지를 <strong className="text-gray-900">Gemini에 다시 전송</strong>하는 구조였습니다.
-          </p>
-        </div>
-        <img
-          src="/BlockmindLLMbefore.png"
-          alt="현재 구조 시퀀스 다이어그램"
-          className="w-full max-w-2xl mx-auto rounded"
-        />
-        <div className="prose max-w-none text-gray-600 space-y-3">
-          <p>
-            서버 로그에서 토큰 사용량을 측정한 결과, 문제가 수치로 확인되었습니다.
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-gray-600">
-              <thead>
-                <tr className="border-b border-border-light text-left">
-                  <th className="py-2 pr-4 font-bold text-gray-900"></th>
-                  <th className="py-2 pr-4 font-bold text-gray-900">/api/chat (1차)</th>
-                  <th className="py-2 pr-4 font-bold text-gray-900">/api/blocks/extract (2차)</th>
-                  <th className="py-2 font-bold text-gray-900">합계</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4 font-bold text-gray-900">input tokens</td>
-                  <td className="py-2 pr-4">448</td>
-                  <td className="py-2 pr-4">1,307</td>
-                  <td className="py-2">1,755</td>
-                </tr>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4 font-bold text-gray-900">output tokens</td>
-                  <td className="py-2 pr-4">1,088</td>
-                  <td className="py-2 pr-4">391</td>
-                  <td className="py-2">1,479</td>
-                </tr>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4 font-bold text-gray-900">total</td>
-                  <td className="py-2 pr-4 font-bold text-gray-900">1,536</td>
-                  <td className="py-2 pr-4 font-bold text-gray-900">1,698</td>
-                  <td className="py-2 font-bold text-gray-900">3,234</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p>
-            2차 호출의 input(1,307 tokens)이 1차보다 크고, 대화가 누적될수록 더 커지는 구조였습니다. 원인은 두 가지였습니다.
-          </p>
-          <p>
-            <strong className="text-gray-900">① 입력 토큰 중복</strong> — EXTRACT 호출이 1차에서 이미 전송한 대화 내용(systemPrompt + messages)을 그대로 재전송하고 있었습니다.
-          </p>
-          <p>
-            <strong className="text-gray-900">② 무조건 2회 호출</strong> — 블록을 생성하지 않아도 되는 일반 대화에서도 EXTRACT API를 항상 호출했습니다.
-          </p>
-        </div>
-
-        <br/>
-
-        {/* 개선 방향 */}
-        <h4 className="text-xl font-bold text-gray-900">개선 방향</h4>
-        <div className="prose max-w-none text-gray-600 space-y-3">
-          <p>
-            Vercel AI SDK의 <code>tool()</code> + <code>streamText(&#123; tools &#125;)</code>를 활용하여 두 호출을 하나로 통합했습니다.
-            <code>saveMemoryBlock</code> tool을 <code>/api/chat</code>의 <code>streamText</code>에 정의하면, Gemini가 응답을 생성하는 중 블록 저장이 필요하다고 판단할 때만 <strong className="text-gray-900">선택적으로 tool을 호출</strong>합니다.
-            블록 추출을 위한 별도 API 호출이 사라지고, 중복 전송되던 대화 내용도 제거됩니다.
-          </p>
-        </div>
-        <img
-          src="/BlockmindLLMafter.png"
-          alt="개선 후 시퀀스 다이어그램"
-          className="w-full max-w-2xl mx-auto rounded"
-        />
-
-        <br/>
-
-        {/* 결과 */}
-        <h4 className="text-xl font-bold text-gray-900">결과</h4>
-        <div className="prose max-w-none text-gray-600 space-y-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-gray-600">
-              <thead>
-                <tr className="border-b border-border-light text-left">
-                  <th className="py-2 pr-4 font-bold text-gray-900"></th>
-                  <th className="py-2 pr-4 font-bold text-gray-900">리팩토링 전 (2회 호출)</th>
-                  <th className="py-2 pr-4 font-bold text-gray-900">리팩토링 후 (1회 호출)</th>
-                  <th className="py-2 font-bold text-gray-900">변화</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4 font-bold text-gray-900">API 호출 횟수</td>
-                  <td className="py-2 pr-4">2회</td>
-                  <td className="py-2 pr-4">1회</td>
-                  <td className="py-2">-1회</td>
-                </tr>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4 font-bold text-gray-900">input tokens</td>
-                  <td className="py-2 pr-4">1,755</td>
-                  <td className="py-2 pr-4">546</td>
-                  <td className="py-2 font-bold text-gray-900">-1,209 (-68.9%)</td>
-                </tr>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4 font-bold text-gray-900">output tokens</td>
-                  <td className="py-2 pr-4">1,479</td>
-                  <td className="py-2 pr-4">1,432</td>
-                  <td className="py-2">-47</td>
-                </tr>
-                <tr className="border-b border-border-light">
-                  <td className="py-2 pr-4 font-bold text-gray-900">total tokens</td>
-                  <td className="py-2 pr-4 font-bold text-gray-900">3,234</td>
-                  <td className="py-2 pr-4 font-bold text-gray-900">1,978</td>
-                  <td className="py-2 font-bold text-gray-900">-1,256 (-38.8%)</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p>
-            입력 토큰의 68.9% 절감이 전체 비용 절감의 핵심입니다. EXTRACT 호출에서 대화 내용을 재전송하던 1,307 input tokens가 완전히 제거되었기 때문입니다.
-            또한 블록 추출이 불필요한 일반 대화에서는 tool이 호출되지 않으므로 절감 효과는 실제로 더 큽니다.
-          </p>
-        </div>
-      </section>
+      
     </article>
   );
 }
