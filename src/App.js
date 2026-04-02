@@ -7,6 +7,7 @@ import WhereGoPage from './pages/WhereGoPage';
 const TOC = [
   {
     project: 'BlockMind',
+    projectId: 'blockmind',
     items: [
       { id: 'bm-1', label: '블록 비활성화가 AI 답변에 반영되지 않는 문제' },
       { id: 'bm-2', label: '채팅 페이지 리로드 시 빈 화면 노출' },
@@ -15,12 +16,14 @@ const TOC = [
   },
   {
     project: '여기보개',
+    projectId: 'heredoggy',
     items: [
       { id: 'hd-1', label: 'GPS 좌표 누적 후 일괄 전송' },
     ],
   },
   {
     project: '어디고',
+    projectId: 'wherego',
     items: [
       { id: 'wg-1', label: '비효율적인 일정 수정 UX' },
     ],
@@ -112,7 +115,12 @@ function ScrollNav() {
       >
         {TOC.map((group) => (
           <div key={group.project} className="mb-5 last:mb-0">
-            <p className="font-bold text-gray-900 text-sm mb-2">{group.project}</p>
+            <button
+              onClick={() => handleNavigate(group.projectId)}
+              className="font-bold text-gray-900 text-sm mb-2 text-left hover:text-primary transition-colors"
+            >
+              {group.project}
+            </button>
             <ul className="space-y-1.5">
               {group.items.map((item) => (
                 <li key={item.id}>
