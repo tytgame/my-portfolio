@@ -2,7 +2,6 @@ import './App.css';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import BlockmindPage from './pages/BlockmindPage';
 import HereDoggyPage from './pages/HereDoggyPage';
-import WhereGoPage from './pages/WhereGoPage';
 
 const TOC = [
   {
@@ -19,13 +18,6 @@ const TOC = [
     projectId: 'heredoggy',
     items: [
       { id: 'hd-1', label: 'GPS 좌표 누적 후 일괄 전송' },
-    ],
-  },
-  {
-    project: '어디고',
-    projectId: 'wherego',
-    items: [
-      { id: 'wg-1', label: '비효율적인 일정 수정 UX' },
     ],
   },
 ];
@@ -183,8 +175,6 @@ function App() {
         <BlockmindPage />
         <hr className="border-border-light" />
         <HereDoggyPage />
-        <hr className="border-border-light" />
-        <WhereGoPage />
       </main>
 
       <footer className="w-full max-w-4xl mx-auto px-6 py-12 border-t border-border-light text-center text-xs text-gray-400">

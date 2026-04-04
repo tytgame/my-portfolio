@@ -69,40 +69,101 @@ function HereDoggyPage() {
       {/* 기술적 의사결정 */}
       <section id="hd-1" className="space-y-4">
         <h3 className="text-xl font-bold border-b border-border-light pb-2">
-        GPS 좌표를 클라이언트에서 누적 후 산책 종료 시 일괄 전송하여 서버 요청을 최소화
+          GPS 좌표를 클라이언트에서 누적 후 산책 종료 시 일괄 전송하여 서버 요청을 최소화
         </h3>
 
+        {/* 설계 배경 */}
+        <h4 className="text-xl font-bold text-gray-900">설계 배경</h4>
         <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            산책 중 GPS 좌표를 수집할 때, 좌표가 발생할 때마다 서버에 전송하면 30분 산책 한 건에 <strong className="text-gray-900">약 200회의 API 요청</strong>이 발생합니다. 동시 사용자 10명 기준으로는 2,000회가 30분 안에 집중되고, 매 요청마다 HTTP 핸드셰이크·인증·DB 쓰기가 반복되어 서버 리소스가 좌표 저장에 소모되는 구조였습니다.
-          </p>
-          <p>
-            이 서비스에서 산책 경로는 <strong className="text-gray-900">산책 완료 후 기록 조회 목적</strong>으로만 사용되며, 경로의 실시간 지도 표시는 클라이언트 로컬 상태만으로 구현 가능했습니다. 서버가 산책 중 실시간으로 경로를 알아야 할 요구사항이 없었기 때문에, 실시간 전송 대신 <strong className="text-gray-900">클라이언트에서 좌표를 누적하고 산책 종료 시 단 1회 일괄 전송</strong>하는 방식을 선택했습니다.
-          </p>
-          <p>
-            결과적으로 API 호출이 산책 1건당 시작·종료 <strong className="text-gray-900">2회로 고정</strong>되어, 사용자 수가 늘어도 서버 부하가 산책 횟수에만 비례하는 구조가 되었습니다.
+            산책 추적 기능은 사용자가 걷는 동안 GPS 좌표를 수집하고, 이동 경로를 지도에 표시하며, 산책이 끝나면 경로 데이터를 서버에 저장하는 기능입니다.
+            설계 시 가장 먼저 결정해야 했던 것은 <strong className="text-gray-900">수집된 좌표를 언제 서버로 전송할 것인가</strong>였습니다.
           </p>
         </div>
 
-        
+        {/* 예상 문제 */}
+        <h4 className="text-xl font-bold text-gray-900">예상 문제</h4>
+        <div className="prose max-w-none text-gray-600 space-y-3">
+          <p>
+            가장 직관적인 구현은 좌표가 수집될 때마다 서버에 전송하는 것입니다. GPS는 이동 거리 10m마다 좌표를 생성하도록 설정했을 때 30분 산책 한 건에 <strong className="text-gray-900">약 1,800회의 API 요청</strong>이 발생합니다.
+            동시에 여러 사용자가 산책하는 상황을 고려하면 동시 사용자 10명 기준으로 <strong className="text-gray-900">18,000회의 요청</strong>이 30분 동안 서버에 집중됩니다.
+            매 요청마다 HTTP 핸드셰이크, 인증 검증, DB 쓰기가 반복되므로 서버 리소스가 실제 비즈니스 로직이 아닌 좌표 저장에 소모되는 구조였습니다.
+          </p>
+        </div>
+
+        {/* 전송 방식 비교 */}
+        <h4 className="text-xl font-bold text-gray-900">전송 방식 비교</h4>
+        <div className="prose max-w-none text-gray-600 space-y-3">
+          <p>
+            <strong className="text-gray-900">A. 좌표 수집 시마다 즉시 전송</strong> — 서버에 데이터가 실시간으로 쌓이므로 앱이 비정상 종료되더라도 그 시점까지의 경로가 보존됩니다. 위치 기반 알림 같은 기능으로의 확장도 용이합니다.
+            반면, 산책 한 건당 수천 회의 API 호출이 발생하여 <strong className="text-gray-900">서버 부하가 사용자 수에 비례해 선형으로 증가</strong>하고, 매 요청마다 네트워크 연결이 필요해 배터리 소모와 데이터 사용량도 커집니다.
+          </p>
+          <p>
+            <strong className="text-gray-900">B. 클라이언트 누적 후 종료 시 일괄 전송 (채택)</strong> — 산책 중에는 좌표를 클라이언트 메모리에만 쌓아두고, 종료 시점에 전체 좌표 배열을 단 1회 전송합니다. API 호출이 <strong className="text-gray-900">시작 1회 + 종료 1회 = 총 2회</strong>로 고정되어, 사용자 수가 늘어도 서버 부하가 산책 횟수에만 비례합니다.
+            반면, 산책 중 앱이 비정상 종료되면 누적된 좌표가 모두 유실됩니다.
+          </p>
+          <p>
+            이 서비스에서 산책 경로는 <strong className="text-gray-900">산책 완료 후 기록 조회 목적</strong>으로만 사용되며, 경로의 실시간 지도 표시는 클라이언트 로컬 상태만으로 구현 가능했습니다. 서버가 산책 중 실시간으로 경로를 알아야 할 요구사항이 없었기 때문에 실시간성을 포기하는 대신 서버 부하를 최소화하는 <strong className="text-gray-900">B안을 채택</strong>했습니다.
+          </p>
+        </div>
+
+        <img
+          src="/WheregoFlow.png"
+          alt="산책 데이터 전송 흐름 다이어그램"
+          className="w-full max-w-xl mx-auto rounded"
+        />
+
+        {/* 결과 */}
+        <h4 className="text-xl font-bold text-gray-900">결과</h4>
+        <div className="prose max-w-none text-gray-600 space-y-4">
+          <p className="text-xs text-gray-400">
+            ※ 예상 트래픽 산출 근거: 평균 보행 속도 4km/h, 30분 산책 시 약 2km 이동, 10m 필터 적용 시 약 200개 좌표 수집 가정.
+            좌표 1건당 약 80바이트(lat·lng·timestamp + JSON 키), HTTP 요청 1건당 약 500바이트 오버헤드 가정.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-gray-600">
+              <thead>
+                <tr className="border-b border-border-light text-left">
+                  <th className="py-2 pr-4 font-bold text-gray-900">항목 (30분 산책 기준)</th>
+                  <th className="py-2 pr-4 font-bold text-gray-900">A. 즉시 전송</th>
+                  <th className="py-2 font-bold text-gray-900">B. 일괄 전송 (채택)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">API 호출 횟수 (1명)</td>
+                  <td className="py-2 pr-4">~1,800회</td>
+                  <td className="py-2 font-bold text-gray-900">2회 (고정)</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">API 호출 횟수 (10명)</td>
+                  <td className="py-2 pr-4">~18,000회</td>
+                  <td className="py-2 font-bold text-gray-900">20회 (고정)</td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="py-2 pr-4 font-bold text-gray-900">총 전송량 (1명)</td>
+                  <td className="py-2 pr-4">~1,044KB</td>
+                  <td className="py-2 font-bold text-gray-900">~17KB</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            B안은 API 호출 횟수가 사용자 수와 무관하게 <strong className="text-gray-900">산책 1건당 2회로 고정</strong>됩니다.
+            사용자가 늘어날수록 A안 대비 서버 부하 차이가 커지는 구조이며, 위 수치는 일반적인 산책 시나리오를 가정한 예상값입니다.
+          </p>
+        </div>
 
         {/* 회고 */}
-        {/* <h4 className="text-xl font-bold text-gray-900">회고</h4>
-        <div className="prose max-w-none text-gray-600 space-y-4">
-          <p className="font-bold text-gray-900">이중 필터링에 대한 반성</p>
+        <h4 className="text-xl font-bold text-gray-900">회고</h4>
+        <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            현재 구현에는 Geolocator의 distanceFilter: 10(플랫폼 레벨)과 Haversine 거리 체크 {'>'}= 10.0(앱 레벨)이 동시에 적용되어 있습니다.
-            둘 다 동일한 10m 기준으로 같은 역할을 하고 있어 사실상 중복입니다.
-            플랫폼의 distanceFilter가 이미 10m 미만 이벤트를 차단하므로, 앱 레벨 체크는 불필요한 연산을 추가하고 있는 셈입니다.
-            둘 중 하나만 남기는 것이 올바른 설계였습니다.
+            <strong className="text-gray-900">이중 필터링에 대한 반성</strong> — 현재 구현에는 Geolocator의 <code>distanceFilter: 10</code>(플랫폼 레벨)과 Haversine 거리 체크 <code>{'>'}= 10.0</code>(앱 레벨)이 동시에 적용되어 있습니다. 둘 다 동일한 10m 기준으로 같은 역할을 하고 있어 사실상 중복입니다. 플랫폼의 <code>distanceFilter</code>가 이미 10m 미만 이벤트를 차단하므로 앱 레벨 체크는 불필요한 연산을 추가하고 있는 셈이며, 둘 중 하나만 남기는 것이 올바른 설계였습니다.
           </p>
-          <p className="font-bold text-gray-900">종료 전 데이터 유실 위험</p>
           <p>
-            일괄 전송 방식의 트레이드오프로 인지했던 데이터 유실 위험에 대해, 설계 시점에 구체적인 방어 로직을 마련하지 못했습니다.
-            SharedPreferences나 로컬 DB에 주기적으로 중간 저장하고, 앱 재시작 시 복원하는 장치가 추가되어야 했습니다.
-            DB 쓰기 횟수가 다소 늘어나더라도 일정 간격으로 중간 전송하는 등 데이터 유실을 방어하는 로직이 함께 설계됐어야 했으며, 개선이 필요한 지점이었단 걸 인지했습니다.
+            <strong className="text-gray-900">종료 전 데이터 유실 위험</strong> — 일괄 전송 방식의 트레이드오프로 인지했던 데이터 유실 위험에 대해, 설계 시점에 구체적인 방어 로직을 마련하지 못했습니다. <code>SharedPreferences</code>나 로컬 DB에 주기적으로 중간 저장하고 앱 재시작 시 복원하는 장치가 추가되어야 했으며, 서버 부하를 줄이면서도 데이터 안정성을 확보하려면 이 보완이 필요한 지점이었단 걸 인지했습니다.
           </p>
-        </div> */}
+        </div>
       </section>
     </article>
   );
