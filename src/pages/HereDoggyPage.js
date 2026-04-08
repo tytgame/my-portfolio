@@ -68,10 +68,10 @@ function HereDoggyPage() {
 
       {/* 기술적 의사결정 */}
       <section id="hd-1" className="space-y-4">
-        <h3 className="text-xl font-bold border-b border-border-light pb-2">
+        <h3 className="text-3xl font-bold border-b border-border-light pb-2">
           GPS 좌표를 클라이언트에서 누적 후 산책 종료 시 일괄 전송하여 서버 요청을 최소화
         </h3>
-
+        
         {/* 설계 배경 */}
         <h4 className="text-xl font-bold text-gray-900">설계 배경</h4>
         <div className="prose max-w-none text-gray-600 space-y-3">
