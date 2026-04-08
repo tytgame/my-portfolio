@@ -48,8 +48,8 @@ function BlockmindPage() {
         </div>
         <p className="text-sm text-gray-500 mb-3">개인 프로젝트</p>
         <p className="text-lg text-black mb-6 font-light leading-relaxed">
-        사용자의 대화를 바탕으로 정보를 블록으로 만들고<br/>
-        AI의 기억을 시각화하여 제어할 수 있는 채팅 서비스
+        사용자와의 대화를 바탕으로 정보를 블록으로 만들고<br/>
+        AI의 맥락을 시각화하여 대화할 수 있는 서비스
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-mono text-gray-600">
           <span>Next.js</span>
@@ -148,13 +148,12 @@ function BlockmindPage() {
         <div className="prose max-w-none text-gray-600 space-y-4">
           <p className="font-bold text-gray-900">상태 분리 설계</p>
           <p>
-            C안의 구현을 위해 먼저 두 개의 역할을 가지고 있는 messages[]을 <strong className="text-gray-900">어떤 기준</strong>으로 분리할 것인지 결정해야 했습니다.<br/>
-            처음엔 단순히 모델 전송용 메시지를 '<strong className="text-gray-900">블록 토글 시각 기준으로 분리</strong> 하면 되겠다' 라는 생각으로 진행하였습니다.<br/>
+            C안의 구현을 위해 먼저 두 개의 역할을 수행하고 있는 메시지 배열을 <strong className="text-gray-900">어떤 기준</strong>으로 분리할 것인지 정해야 했습니다.<br/>
+            처음엔 단순히 모델 전송용 메시지를 '<strong className="text-gray-900">블록 토글 시각 기준으로 분리하면 되겠다</strong>'는 생각으로 블록 토글 시점인 lastResetAt 이후에 생성된 메시지만 필터링하여 전송하는 <strong className="text-gray-900">타임스태프 방식</strong>으로 접근하였습니다.<br/>
             <br/>
-            따라서 블록 토글 시각인 lastResetAt 이후에 생성된 메시지만 필터링하여 전송하는 <strong className="text-gray-900">타임스탬프</strong> 방식으로 접근했습니다.<br/>
             하지만 AI SDK 라이브러리 내부 함수인 useChat이 반환하는 메시지 객체에 항상 createdAt 필드가 있다는 보장을 할 수 없었고, 형식이 변할 수 있는 라이브러리 세부 구현에 의존하는 방식이라 <strong className="text-gray-900">불안정한 방식</strong>이라고 판단하여 다른 기준을 찾아 보았습니다.<br/>
             <br/>
-            제가 실제로 필요했던 것은 정확한 <strong className="text-gray-900">대화 범위의 관리</strong>였기 때문에 시간이라는 경계값보다 <strong className="text-gray-900">인덱스</strong> 경계값을 사용하는 것이 안정적인 방식이라고 판단했습니다. 그래서 <strong className="text-gray-900">pivotIndex</strong>를 경계로 모델 전송용 메시지를 분리하여 구현을 진행했습니다.<br/>
+            제가 실제로 필요했던 것은 정확한 <strong className="text-gray-900">대화 범위의 관리</strong>였기 때문에 <strong className="text-gray-900">시간이라는 경계값보다 인덱스 경계값을 사용</strong>하는 것이 안정적인 방식이라고 판단했습니다. 그래서 <strong className="text-gray-900">pivotIndex</strong>를 경계로 모델 전송용 메시지를 분리하여 구현을 진행했습니다.<br/>
             
 
           </p>
@@ -255,7 +254,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
             </p>
             <p>
             그래서 body() 내부에서는 값을 미리 캡처하지 않고 메시지를 보내는 순간 useBlockStore.getState()를 호출해 Zustand store의 <strong className="text-gray-900">최신 상태를 읽도록</strong> 했습니다.
-            이렇게 하면 transport 객체는 한 번만 생성하더라도 body()가 실행될 때마다 그 시점의 blocks와 pivotIndex를 읽어 요청에 반영할 수 있고 <strong className="text-gray-900">stale closure 문제를 예방</strong>할 수 있었습니다.
+            이렇게 하면 transport 객체는 한 번만 생성하더라도 body()가 실행될 때마다 그 시점의 blocks와 pivotIndex를 읽어 요청에 반영할 수 있고 stale closure 문제를 예방할 수 있었습니다.
 
           </p>
           <CodeBlock language="typescript" fileName="chat-interface.tsx">
@@ -351,9 +350,10 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
         <h4 className="text-xl font-bold text-gray-900">현재 구조</h4>
         <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            사용자가 메시지를 보낼 때마다 채팅 응답과 블록 자동 추출을 위해 LLM API가 <strong className="text-gray-900">2회 호출</strong>되고 있었습니다.
-            1차 호출(<code>/api/chat</code>)에서 스트리밍 응답을 받은 뒤, 응답이 완료되면 항상 2차 호출(<code>/api/blocks/extract</code>)이 실행되었고,
-            이 2차 호출은 1차에서 이미 전송한 user 메시지와 assistant 메시지를 <strong className="text-gray-900">Gemini에 다시 전송</strong>하는 구조였습니다.
+            사용자가 메시지를 보낼 때마다 채팅 응답과 자동 블록 생성을 위해 LLM API가 <strong className="text-gray-900">2회 호출</strong>되고 있었습니다.
+            <br/>
+            1차로 메시지 전송(/api/chat)후 응답을 받은 뒤 항상 2차로 블록 생성 판단(/api/blocks/extract)이 진행되었고
+            이 블록 생성 API는 <strong className="text-gray-900">이미 전송한 유저의 메시지와 BlockMind의 메시지를 Gemini에 다시 전송</strong>하는 구조였습니다.
           </p>
         </div>
         <img
@@ -363,7 +363,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
         />
         <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            서버 로그에서 토큰 사용량을 측정한 결과, 문제가 수치로 확인되었습니다.
+            서버 로그에서 토큰 사용량을 측정한 결과 중복된 내용이 Gemini에 전달되는 문제가 실제로 확인되었습니다.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-gray-600">
@@ -398,14 +398,12 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
             </table>
           </div>
           <p>
-            2차 호출의 input(1,307 tokens)이 1차보다 크고, 대화가 누적될수록 더 커지는 구조였습니다. 원인은 두 가지였습니다.
+            블록 생성을 위한 input token이 사용자 채팅 token보다 많아졌고, 대화량이 많아질수록 토큰 소모가 더 커지는 구조였습니다.
           </p>
           <p>
-            <strong className="text-gray-900">① 입력 토큰 중복</strong> — EXTRACT 호출이 1차에서 이미 전송한 대화 내용(systemPrompt + messages)을 그대로 재전송하고 있었습니다.
+            원인은 블록 생성 API가 1차 사용자 채팅에서 전송한 대화 내용을 그대로 재전송하고 있었고, 블록을 생성할 필요가 없는 대화도 판단을 위해 항상 호출되었던 것이 원인이었습니다.
           </p>
-          <p>
-            <strong className="text-gray-900">② 무조건 2회 호출</strong> — 블록을 생성하지 않아도 되는 일반 대화에서도 EXTRACT API를 항상 호출했습니다.
-          </p>
+          
         </div>
 
         <br/>
@@ -414,9 +412,11 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
         <h4 className="text-xl font-bold text-gray-900">개선 방향</h4>
         <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            Vercel AI SDK의 <code>tool()</code> + <code>streamText(&#123; tools &#125;)</code>를 활용하여 두 호출을 하나로 통합했습니다.
-            <code>saveMemoryBlock</code> tool을 <code>/api/chat</code>의 <code>streamText</code>에 정의하면, Gemini가 응답을 생성하는 중 블록 저장이 필요하다고 판단할 때만 <strong className="text-gray-900">선택적으로 tool을 호출</strong>합니다.
-            블록 추출을 위한 별도 API 호출이 사라지고, 중복 전송되던 대화 내용도 제거됩니다.
+            AI SDK의 tool()을 활용하여 두 호출을 하나로 통합했습니다.
+            </p>
+            <p>
+            기존에 블록을 생성하는 역할을 saveMemoryBlock tool로 대체하였고, /api/chat의 streamText에 정의하여 Gemini가 답변을 생성하면서 <strong className="text-gray-900">블록 저장이 필요하다고 판단할 때만 선택적으로 tool을 호출</strong>하는 방식으로 리팩토링 하였습니다.
+            블록 생성을 위한 별도 API 호출이 사라지고 중복 전송되던 대화 내용도 제거되었습니다.
           </p>
         </div>
         <img
@@ -451,7 +451,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
                   <td className="py-2 pr-4 font-bold text-gray-900">input tokens</td>
                   <td className="py-2 pr-4">1,755</td>
                   <td className="py-2 pr-4">546</td>
-                  <td className="py-2 font-bold text-gray-900">-1,209 (-68.9%)</td>
+                  <td className="py-2 font-bold text-gray-900">-1,209</td>
                 </tr>
                 <tr className="border-b border-border-light">
                   <td className="py-2 pr-4 font-bold text-gray-900">output tokens</td>
@@ -469,8 +469,10 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
             </table>
           </div>
           <p>
-            입력 토큰의 68.9% 절감이 전체 비용 절감의 핵심입니다. EXTRACT 호출에서 대화 내용을 재전송하던 1,307 input tokens가 완전히 제거되었기 때문입니다.
-            또한 블록 추출이 불필요한 일반 대화에서는 tool이 호출되지 않으므로 절감 효과는 실제로 더 큽니다.
+            리팩토링 후 같은 질문을 했을 때, 2차 호출에서 대화 내용을 재전송하던 1,307 input token이 완전히 제거되어 <strong className="text-gray-900">결과적으로 기능 변화 없이 총 토큰 수가 38.8% 절감되었습니다.</strong>
+          </p>
+          <p>
+            또한 기존 구조에서는 블록 생성이 불필요한 대화에서도 API를 호출하여 추가적인 토큰 소모가 있었지만, 현재 구조에선 <strong className="text-gray-900">블록 생성이 불필요한 대화에서 tool이 호출되지 않아</strong> 추가적인 토큰 비용 절감 효과가 있었습니다.
           </p>
         </div>
       </section>
@@ -497,7 +499,7 @@ setPivotIndex: (index) => set({ pivotIndex: index }),`}
         <p className="font-bold text-gray-900">블록 패널</p>
         <br/>
           <p>
-            왜 '블록이 없습니다'가 잠깐 보이는지 원인을 파악하기 위해 layout.tsx 코드의 동작 순서를 이해해야 했습니다.
+            왜 '블록이 없습니다'가 잠깐 보이는지 원인을 파악하기 위해 layout.tsx 코드의 동작 순서를 자세하게 살펴 보았습니다.
             </p>
             <br/>
             <CodeBlock language="typescript" fileName="layout.tsx (수정 전)">
@@ -573,7 +575,7 @@ export default function ChatLayout({ children }) {
           </p>
           
           <p>
-            useEffect는 렌더가 끝난 후 실행되기 때문에 첫 프레임에서 여전히 빈 배열이 렌더됩니다. 이를 막기 위해 서버에서 전달받은 initialBlocks를 <strong className="text-gray-900">렌더 단계에서 useRef를 통해 동기적으로 store에 반영</strong>해 첫 렌더부터 블록 데이터가 존재하도록 했습니다.
+            useEffect는 렌더가 끝난 후 실행되기 때문에 첫 프레임에서 여전히 빈 배열이 렌더됩니다. 이를 막기 위해 서버에서 전달받은 initialBlocks를 <strong className="text-gray-900">렌더 단계에서 useRef를 통해 store에 반영</strong>해 첫 렌더부터 블록 데이터가 존재하도록 했습니다.
             </p>
 
             <p>

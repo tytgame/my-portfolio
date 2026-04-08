@@ -76,8 +76,8 @@ function HereDoggyPage() {
         <h4 className="text-xl font-bold text-gray-900">설계 배경</h4>
         <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            산책 추적 기능은 사용자가 걷는 동안 GPS 좌표를 수집하고, 이동 경로를 지도에 표시하며, 산책이 끝나면 경로 데이터를 서버에 저장하는 기능입니다.
-            설계 시 가장 먼저 결정해야 했던 것은 <strong className="text-gray-900">수집된 좌표를 언제 서버로 전송할 것인가</strong>였습니다.
+            산책 기능은 사용자가 걷는 동안 GPS 좌표를 수집하고 이동 경로를 지도에 표시하며, 산책이 끝나면 경로 데이터를 서버에 저장하는 기능입니다.
+            기능 설계에서 가장 먼저 결정해야 했던 것은 <strong className="text-gray-900">수집된 좌표를 언제 서버로 전송할 것인가</strong>였습니다.
           </p>
         </div>
 
@@ -85,25 +85,32 @@ function HereDoggyPage() {
         <h4 className="text-xl font-bold text-gray-900">예상 문제</h4>
         <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            가장 직관적인 구현은 좌표가 수집될 때마다 서버에 전송하는 것입니다. GPS는 이동 거리 10m마다 좌표를 생성하도록 설정했을 때 30분 산책 한 건에 <strong className="text-gray-900">약 1,800회의 API 요청</strong>이 발생합니다.
-            동시에 여러 사용자가 산책하는 상황을 고려하면 동시 사용자 10명 기준으로 <strong className="text-gray-900">18,000회의 요청</strong>이 30분 동안 서버에 집중됩니다.
-            매 요청마다 HTTP 핸드셰이크, 인증 검증, DB 쓰기가 반복되므로 서버 리소스가 실제 비즈니스 로직이 아닌 좌표 저장에 소모되는 구조였습니다.
+            가장 직관적인 방식은 좌표가 수집될 때마다 서버에 전송하는 것이었습니다.
+            </p>
+            <p>
+             GPS는 이동 거리 10m마다 좌표를 생성하도록 설정했을 때 30분 산책 한 건에 <strong className="text-gray-900">약 1,800회의 API 요청</strong>이 발생합니다.
+            동시에 여러 사용자가 산책하는 상황을 고려하면 동시 사용자 10명 기준으로 <strong className="text-gray-900">18,000회의 요청</strong>이 30분 동안 서버에 전송됩니다.
+            </p>
+            <p>
+            매 요청마다 HTTP 핸드셰이크, 인증 검증, DB 쓰기가 반복되므로 서버의 자원이 실제 비즈니스 로직이 아닌 좌표 저장에 소모되는 구조가 될 것으로 예상되었습니다.
           </p>
         </div>
 
         {/* 전송 방식 비교 */}
         <h4 className="text-xl font-bold text-gray-900">전송 방식 비교</h4>
-        <div className="prose max-w-none text-gray-600 space-y-3">
-          <p>
-            <strong className="text-gray-900">A. 좌표 수집 시마다 즉시 전송</strong> — 서버에 데이터가 실시간으로 쌓이므로 앱이 비정상 종료되더라도 그 시점까지의 경로가 보존됩니다. 위치 기반 알림 같은 기능으로의 확장도 용이합니다.
-            반면, 산책 한 건당 수천 회의 API 호출이 발생하여 <strong className="text-gray-900">서버 부하가 사용자 수에 비례해 선형으로 증가</strong>하고, 매 요청마다 네트워크 연결이 필요해 배터리 소모와 데이터 사용량도 커집니다.
+        <div className="prose max-w-none text-gray-600">
+          <p>이 문제에 대해 두 가지 접근을 비교했습니다. 서버 부하를 줄이면서도 산책 데이터를 안전하게 저장할 수 있는 방식이 필요했습니다.</p>
+        </div>
+        <ul className="text-gray-600 space-y-1">
+          <li>A. 좌표 수집 시마다 즉시 전송</li>
+          <li className="font-bold text-gray-900">B. 클라이언트 누적 후 종료 시 일괄 전송</li>
+        </ul>
+        <div className="prose max-w-none text-gray-600 space-y-2">
+          <p className="pl-12">
+            <strong className="text-gray-900 -ml-11">A안 -</strong> 앱이 비정상 종료되더라도 그 시점까지의 경로가 보존되지만, 산책 한 건당 <strong className="text-gray-900">수천 회의 API 호출</strong>이 발생하고 매 요청마다 HTTP 핸드셰이크, 인증, DB 쓰기가 반복되어 서버 부하가 사용자 수에 비례해 커지는 구조라 판단했습니다.
           </p>
-          <p>
-            <strong className="text-gray-900">B. 클라이언트 누적 후 종료 시 일괄 전송 (채택)</strong> — 산책 중에는 좌표를 클라이언트 메모리에만 쌓아두고, 종료 시점에 전체 좌표 배열을 단 1회 전송합니다. API 호출이 <strong className="text-gray-900">시작 1회 + 종료 1회 = 총 2회</strong>로 고정되어, 사용자 수가 늘어도 서버 부하가 산책 횟수에만 비례합니다.
-            반면, 산책 중 앱이 비정상 종료되면 누적된 좌표가 모두 유실됩니다.
-          </p>
-          <p>
-            이 서비스에서 산책 경로는 <strong className="text-gray-900">산책 완료 후 기록 조회 목적</strong>으로만 사용되며, 경로의 실시간 지도 표시는 클라이언트 로컬 상태만으로 구현 가능했습니다. 서버가 산책 중 실시간으로 경로를 알아야 할 요구사항이 없었기 때문에 실시간성을 포기하는 대신 서버 부하를 최소화하는 <strong className="text-gray-900">B안을 채택</strong>했습니다.
+          <p className="pl-12">
+            <strong className="text-gray-900 -ml-11">B안 -</strong> 산책 중에는 좌표를 클라이언트 메모리에만 쌓아두고 <strong className="text-gray-900">종료 시점에 전체 좌표 배열을 전송하는 방식입니다.</strong> 만약 앱이 비정상적으로 종료될 경우 누적된 좌표가 사라지는 단점이 있었지만, 이 서비스에서 산책 경로는 <strong className="text-gray-900">산책 완료 후 기록 조회 목적</strong>으로만 사용되고 실시간 지도 표시는 클라이언트 로컬 상태만으로 가능했기 때문에 <strong className="text-gray-900">이 방안을 채택</strong>하였습니다.
           </p>
         </div>
 
@@ -116,29 +123,25 @@ function HereDoggyPage() {
         {/* 결과 */}
         <h4 className="text-xl font-bold text-gray-900">결과</h4>
         <div className="prose max-w-none text-gray-600 space-y-4">
-          <p className="text-xs text-gray-400">
-            ※ 예상 트래픽 산출 근거: 평균 보행 속도 4km/h, 30분 산책 시 약 2km 이동, 10m 필터 적용 시 약 200개 좌표 수집 가정.
-            좌표 1건당 약 80바이트(lat·lng·timestamp + JSON 키), HTTP 요청 1건당 약 500바이트 오버헤드 가정.
-          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-gray-600">
               <thead>
                 <tr className="border-b border-border-light text-left">
                   <th className="py-2 pr-4 font-bold text-gray-900">항목 (30분 산책 기준)</th>
                   <th className="py-2 pr-4 font-bold text-gray-900">A. 즉시 전송</th>
-                  <th className="py-2 font-bold text-gray-900">B. 일괄 전송 (채택)</th>
+                  <th className="py-2 font-bold text-gray-900">B. 일괄 전송</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-border-light">
                   <td className="py-2 pr-4 font-bold text-gray-900">API 호출 횟수 (1명)</td>
                   <td className="py-2 pr-4">~1,800회</td>
-                  <td className="py-2 font-bold text-gray-900">2회 (고정)</td>
+                  <td className="py-2 font-bold text-gray-900">2회</td>
                 </tr>
                 <tr className="border-b border-border-light">
                   <td className="py-2 pr-4 font-bold text-gray-900">API 호출 횟수 (10명)</td>
                   <td className="py-2 pr-4">~18,000회</td>
-                  <td className="py-2 font-bold text-gray-900">20회 (고정)</td>
+                  <td className="py-2 font-bold text-gray-900">20회</td>
                 </tr>
                 <tr className="border-b border-border-light">
                   <td className="py-2 pr-4 font-bold text-gray-900">총 전송량 (1명)</td>
@@ -148,22 +151,33 @@ function HereDoggyPage() {
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-gray-400">
+            ※ 예상 트래픽 산출 근거: 평균 보행 속도 4km/h, 30분 산책 시 약 2km 이동, 10m 필터 적용 시 약 200개 좌표 수집 가정.
+            좌표 1건당 약 80바이트(lat·lng·timestamp + JSON 키), HTTP 요청 1건당 약 500바이트 오버헤드 가정.
+          </p>
           <p>
             B안은 API 호출 횟수가 사용자 수와 무관하게 <strong className="text-gray-900">산책 1건당 2회로 고정</strong>됩니다.
-            사용자가 늘어날수록 A안 대비 서버 부하 차이가 커지는 구조이며, 위 수치는 일반적인 산책 시나리오를 가정한 예상값입니다.
+            사용자가 늘어날수록 A안 대비 서버 부하 차이가 커지는 구조이며 위 수치는 일반적인 산책 시나리오를 가정한 값입니다.
+          </p>
+          <p>
+            또한 GPS 노이즈를 제거하기 위해 Geolocator의 설정을 적용하여 <strong className="text-gray-900">10m 이상 이동 시에만</strong> 좌표를 수집하도록 했습니다.
+            정지 상태에서 발생하는 오차 범위 내의 좌표가 필터링되어 불필요한 데이터 누적 없이 실제 이동 경로만 기록되었습니다.
+          </p>
+          <p>
+            하지만 앱이 비정상적으로 종료될 경우 메모리에 누적된 좌표가 사라지는 한계가 있어 클라이언트 측에서 주기적으로 저장을 하고 앱 재시작 시 복구하는 로직이 보완되어야 할 부분이었습니다.
           </p>
         </div>
 
-        {/* 회고 */}
+        {/* 회고
         <h4 className="text-xl font-bold text-gray-900">회고</h4>
         <div className="prose max-w-none text-gray-600 space-y-3">
           <p>
-            <strong className="text-gray-900">이중 필터링에 대한 반성</strong> — 현재 구현에는 Geolocator의 <code>distanceFilter: 10</code>(플랫폼 레벨)과 Haversine 거리 체크 <code>{'>'}= 10.0</code>(앱 레벨)이 동시에 적용되어 있습니다. 둘 다 동일한 10m 기준으로 같은 역할을 하고 있어 사실상 중복입니다. 플랫폼의 <code>distanceFilter</code>가 이미 10m 미만 이벤트를 차단하므로 앱 레벨 체크는 불필요한 연산을 추가하고 있는 셈이며, 둘 중 하나만 남기는 것이 올바른 설계였습니다.
+            <strong className="text-gray-900">이중 필터링</strong> — distanceFilter: 10(플랫폼 레벨)과 Haversine 거리 체크(앱 레벨)가 동일한 10m 기준으로 중복 적용되어 있습니다. 플랫폼에서 이미 10m 미만 이벤트를 차단하므로 앱 레벨 체크는 불필요한 연산이며, 둘 중 하나만 남기는 것이 올바른 설계였습니다.
           </p>
           <p>
-            <strong className="text-gray-900">종료 전 데이터 유실 위험</strong> — 일괄 전송 방식의 트레이드오프로 인지했던 데이터 유실 위험에 대해, 설계 시점에 구체적인 방어 로직을 마련하지 못했습니다. <code>SharedPreferences</code>나 로컬 DB에 주기적으로 중간 저장하고 앱 재시작 시 복원하는 장치가 추가되어야 했으며, 서버 부하를 줄이면서도 데이터 안정성을 확보하려면 이 보완이 필요한 지점이었단 걸 인지했습니다.
+            <strong className="text-gray-900">데이터 유실 위험</strong> — 일괄 전송의 트레이드오프로 인지했던 앱 비정상 종료 시 데이터 유실에 대해, 설계 시점에 방어 로직을 마련하지 못했습니다. 로컬 DB에 주기적으로 중간 저장하고 앱 재시작 시 복원하는 장치가 필요했으며, 개선이 필요한 지점으로 인지하고 있습니다.
           </p>
-        </div>
+        </div> */}
       </section>
     </article>
   );
