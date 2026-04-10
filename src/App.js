@@ -162,7 +162,7 @@ function App() {
           <p className="text-sm text-gray-500 mt-1">Frontend Developer</p>
         </div>
         <div className="text-right text-sm text-gray-500 flex flex-col gap-1">
-          <span>yuyeseong@gmail.com</span>
+          <span>yesung4133@gmail.com</span>
           <a className="hover:text-primary transition-colors" href="https://github.com/tytgame" target="_blank" rel="noreferrer">
             github.com/tytgame
           </a>
