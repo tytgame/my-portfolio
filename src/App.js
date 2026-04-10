@@ -8,7 +8,7 @@ const TOC = [
     project: 'BlockMind',
     projectId: 'blockmind',
     items: [
-      { id: 'bm-1', label: '블록 비활성화가 AI 답변에 반영되지 않는 문제' },
+      { id: 'bm-1', label: '제거한 맥락이 AI 답변에 여전히 반영되는 문제' },
       { id: 'bm-2', label: 'LLM 토큰 비용 38% 절감' },
       { id: 'bm-3', label: '채팅 페이지 리로드 시 빈 화면 노출' },
     ],
