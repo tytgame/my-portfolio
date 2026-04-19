@@ -77,7 +77,7 @@ function BlockmindPage() {
       {/* 1번째 문제 */}
       <section id="bm-1" className="space-y-4">
         <h3 className="text-3xl font-bold border-b border-border-light pb-2">
-          문제 상황 : AI가 기억하고 있는 맥락을 제거해도 여전히 그 내용이 답변에 반영되는 문제
+          문제 상황 : AI의 맥락을 제거해도 여전히 그 내용이 답변에 반영되는 문제
         </h3>
 
         <div className="prose max-w-none text-gray-600">

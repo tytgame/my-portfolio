@@ -1,7 +1,5 @@
 import './App.css';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import BlockmindPage from './pages/BlockmindPage';
-import HereDoggyPage from './pages/HereDoggyPage';
 
 const TOC = [
   {
@@ -172,9 +170,7 @@ function App() {
       <ScrollNav />
 
       <main className="w-full max-w-4xl mx-auto px-6 pb-32 space-y-32">
-        <BlockmindPage />
-        <hr className="border-border-light" />
-        <HereDoggyPage />
+        <p className="text-center text-2xl font-bold text-gray-400">포트폴리오</p>
       </main>
 
       <footer className="w-full max-w-4xl mx-auto px-6 py-12 border-t border-border-light text-center text-xs text-gray-400">
